@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SLA Command Center — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#0a0f1c; --panel:#111a2e; --panel2:#0e1526; --line:rgba(255,255,255,.08);
+  --text:#e7edf7; --muted:#8b98b8; --cyan:#22d3ee; --amber:#f5a623; --red:#f4506a; --green:#34d399;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'Prompt',sans-serif;min-height:100%}
+.mono{font-family:'IBM Plex Mono',monospace}
+header{padding:22px 20px 16px;border-bottom:1px solid var(--line);padding-top:calc(22px + env(safe-area-inset-top,0px))}
+header h1{margin:0;font-size:19px;display:flex;align-items:center;gap:10px}
+header h1 .dot{width:9px;height:9px;border-radius:50%;background:var(--amber);box-shadow:0 0 10px var(--amber)}
+header .sub{color:var(--muted);font-size:12.5px;margin-top:4px}
+main{max-width:920px;margin:0 auto;padding:18px 16px 60px}
+.panel{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}
+.panel h2{font-size:13px;margin:0 0 12px;color:var(--muted);font-weight:600}
+.drop{border:1.5px dashed var(--line);border-radius:12px;padding:28px;text-align:center;color:var(--muted);font-size:13.5px;cursor:pointer}
+.drop:hover{border-color:var(--cyan);color:var(--text)}
+input[type=file]{display:none}
+.status{margin-top:12px;font-size:12.5px;color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:10px}
+th,td{border:1px solid var(--line);padding:6px 8px;text-align:left}
+th{color:var(--muted);font-weight:500}
+.scroll{overflow-x:auto}
+.map{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+@media(max-width:600px){.map{grid-template-columns:1fr}}
+.map .row{display:flex;align-items:center;gap:8px;font-size:12.5px}
+.map .row span{width:130px;color:var(--muted)}
+select{flex:1;background:#0c1424;border:1px solid var(--line);color:var(--text);padding:7px 9px;border-radius:8px;font-family:inherit;font-size:12.5px}
+button.primary{background:var(--cyan);color:#04222b;border:none;padding:11px 20px;border-radius:8px;font-weight:600;font-size:13.5px;cursor:pointer;margin-top:14px}
+button.primary:disabled{opacity:.4;cursor:not-allowed}
+.ok{color:var(--green)} .err{color:var(--red)}
+.badge{display:inline-block;background:#0c1424;border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:11px;color:var(--cyan);margin-left:6px}
+a.link{color:var(--cyan);text-decoration:none;font-size:12.5px}
+</style>
+</head>
+<body>
+<header>
+  <h1><span class="dot"></span>SLA Command Center — Admin</h1>
+  <div class="sub">อัปโหลดไฟล์ Excel (.xlsx) หรือ CSV เพื่ออัปเดต Dashboard <a class="link" href="#" onclick="location.reload()">↻ รีเฟรช</a></div>
+</header>
+<main>
+  <div class="panel">
+    <h2>1. เลือกไฟล์</h2>
+    <div class="drop" id="drop" onclick="document.getElementById('file').click()">
+      คลิกเพื่อเลือกไฟล์ .xlsx / .xls / .csv<br><span style="font-size:11.5px">คอลัมน์ที่รองรับ: Zone, ฝ่าย, เขต, FC, Store ID, Sales Store, Sales Delivery, TC Store, TC Delivery, SLA (min), Cancel</span>
+    </div>
+    <input type="file" id="file" accept=".xlsx,.xls,.csv">
+    <div class="status" id="fileStatus"></div>
+  </div>
+
+  <div class="panel" id="mapPanel" style="display:none">
+    <h2>2. จับคู่คอลัมน์ <span class="badge" id="rowsFound"></span></h2>
+    <div class="map" id="mapGrid"></div>
+    <div class="scroll"><table id="preview"></table></div>
+    <button class="primary" id="saveBtn" onclick="saveData()">บันทึกข้อมูลและอัปเดต Dashboard</button>
+    <div class="status" id="saveStatus"></div>
+  </div>
+
+  <div class="panel">
+    <h2>ข้อมูลปัจจุบันในระบบ</h2>
+    <div class="status" id="currentStatus">กำลังตรวจสอบ…</div>
+  </div>
+</main>
+<script>
+const FIELD_DEFS = [
+  {key:'zone', label:'Zone', aliases:['zone','โซน']},
+  {key:'division', label:'ฝ่าย', aliases:['ฝ่าย','division','dept']},
+  {key:'wm', label:'เขต', aliases:['เขต','wm']},
+  {key:'fc', label:'FC', aliases:['fc']},
+  {key:'store', label:'Store ID', aliases:['store id','store_id','store']},
+  {key:'sales_store', label:'Sales Store', aliases:['sales store','ยอดขายหน้าร้าน']},
+  {key:'sales_delivery', label:'Sales Delivery', aliases:['sales delivery','ยอดขายเดลิเวอรี่']},
+  {key:'tc_store', label:'TC Store', aliases:['tc store','tc ร้าน']},
+  {key:'tc_delivery', label:'TC Delivery', aliases:['tc delivery','tc เดลิเวอรี่']},
+  {key:'sla_min', label:'SLA (นาที)', aliases:['sla','sla (min)','sla min','เวลา sla']},
+  {key:'cancel', label:'Cancel', aliases:['cancel','ยกเลิก']},
+];
+let headers = [], rows = [];
+
+document.getElementById('file').addEventListener('change', e=>{
+  const f = e.target.files[0];
+  if(!f) return;
+  document.getElementById('fileStatus').textContent = 'กำลังอ่านไฟล์ ' + f.name + ' …';
+  const reader = new FileReader();
+  reader.onload = evt => {
+    try{
+      const wb = XLSX.read(evt.target.result, {type:'binary'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(ws, {defval:''});
+      if(!json.length){ document.getElementById('fileStatus').innerHTML = '<span class="err">ไม่พบข้อมูลในไฟล์</span>'; return; }
+      headers = Object.keys(json[0]);
+      rows = json;
+      document.getElementById('fileStatus').innerHTML = '<span class="ok">อ่านไฟล์สำเร็จ</span> พบ ' + rows.length + ' แถว, ' + headers.length + ' คอลัมน์';
+      buildMapUI();
+    }catch(err){
+      document.getElementById('fileStatus').innerHTML = '<span class="err">อ่านไฟล์ไม่สำเร็จ: '+err.message+'</span>';
+    }
+  };
+  reader.readAsBinaryString(f);
+});
+
+function guessColumn(aliases){
+  const h = headers.find(h => aliases.some(a => h.toString().toLowerCase().trim() === a));
+  if(h) return h;
+  return headers.find(h => aliases.some(a => h.toString().toLowerCase().includes(a))) || '';
+}
+
+function buildMapUI(){
+  document.getElementById('mapPanel').style.display = 'block';
+  document.getElementById('rowsFound').textContent = rows.length + ' แถวข้อมูล';
+  const grid = document.getElementById('mapGrid');
+  grid.innerHTML = '';
+  FIELD_DEFS.forEach(fd=>{
+    const guess = guessColumn(fd.aliases);
+    const row = document.createElement('div'); row.className='row';
+    row.innerHTML = '<span>'+fd.label+'</span><select id="map_'+fd.key+'"><option value="">— ไม่ใช้ —</option>' +
+      headers.map(h=>'<option value="'+h+'"'+(h===guess?' selected':'')+'>'+h+'</option>').join('') + '</select>';
+    grid.appendChild(row);
+  });
+  renderPreview();
+}
+
+function renderPreview(){
+  const t = document.getElementById('preview');
+  const sample = rows.slice(0,5);
+  let html = '<tr>' + headers.map(h=>'<th>'+h+'</th>').join('') + '</tr>';
+  sample.forEach(r=>{ html += '<tr>' + headers.map(h=>'<td>'+r[h]+'</td>').join('') + '</tr>'; });
+  t.innerHTML = html;
+}
+
+// ==== ตั้งค่า Supabase ของคุณตรงนี้ (ต้องเหมือนกับใน index.html) ====
+const SUPABASE_URL = 'https://axcudclbkzhtdnezhlbi.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4Y3VkY2xia3podGRuZXpobGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0OTI1MjgsImV4cCI6MjEwNjA2ODUyOH0.dSyL3tuvnxiUyYvXPbWKECtTQ2-H2ZTjCObHXzRw9v0';
+// ====================================================================
+
+async function saveData(){
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true; btn.textContent = 'กำลังบันทึก…';
+  const mapping = {};
+  FIELD_DEFS.forEach(fd => mapping[fd.key] = document.getElementById('map_'+fd.key).value);
+  const records = rows.map(r=>{
+    const rec = {};
+    FIELD_DEFS.forEach(fd=>{
+      const col = mapping[fd.key];
+      rec[fd.key] = col ? r[col] : '';
+    });
+    return rec;
+  });
+  try{
+    const res = await fetch(SUPABASE_URL + '/rest/v1/sla_data?id=eq.1', {
+      method: 'PATCH',
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: 'Bearer ' + SUPABASE_KEY,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal'
+      },
+      body: JSON.stringify({ records, updated_at: new Date().toISOString() })
+    });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    document.getElementById('saveStatus').innerHTML = '<span class="ok">บันทึกสำเร็จ</span> อัปเดต '+records.length+' รายการ — หน้า Dashboard จะแสดงข้อมูลใหม่เมื่อรีเฟรช';
+    checkCurrent();
+  }catch(err){
+    document.getElementById('saveStatus').innerHTML = '<span class="err">บันทึกไม่สำเร็จ: '+err.message+'</span>';
+  }
+  btn.disabled = false; btn.textContent = 'บันทึกข้อมูลและอัปเดต Dashboard';
+}
+
+async function checkCurrent(){
+  try{
+    const res = await fetch(SUPABASE_URL + '/rest/v1/sla_data?id=eq.1&select=records,updated_at', {
+      headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY }
+    });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const row = data[0] || {};
+    if(row.records && row.records.length){
+      document.getElementById('currentStatus').innerHTML = 'มีข้อมูล <b class="mono">'+row.records.length+'</b> แถว • อัปเดตล่าสุด '+new Date(row.updated_at).toLocaleString('th-TH');
+    } else {
+      document.getElementById('currentStatus').textContent = 'ยังไม่มีข้อมูลในระบบ';
+    }
+  }catch(e){ document.getElementById('currentStatus').textContent = 'ตรวจสอบไม่สำเร็จ: ' + e.message; }
+}
+checkCurrent();
+</script>
+</body>
+</html>
