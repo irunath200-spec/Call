@@ -79,14 +79,14 @@ a.link{color:var(--cyan);text-decoration:none;font-size:12.5px}
 // (Zone, ฝ่าย, เขต, FC, Store ID, Sales Store, Sales Delivery, TC ร้าน, TC Delivery, SLA, Cancel)
 const FIELD_DEFS = [
   {key:'zone', label:'Zone', aliases:['zone','โซน']},
-  {key:'division', label:'ฝ่าย', aliases:['ฝ่าย','division','dept','แผนก']},
-  {key:'wm', label:'เขต', aliases:['เขต','wm','เขตขาย']},
+  {key:'division', label:'ฝ่าย', aliases:['ฝ่าย','ฝาย','division','dept','แผนก']},
+  {key:'wm', label:'เขต', aliases:['เขต','wm','เขตขาย','area','region']},
   {key:'fc', label:'FC', aliases:['fc','fulfillment center']},
   {key:'store', label:'Store ID', aliases:['store id','store_id','storeid','store','รหัสร้าน']},
   {key:'sales_store', label:'Sales Store (ยอดขายหน้าร้าน)', aliases:['sales store','ยอดขายหน้าร้าน','ยอดขายร้าน','store sales']},
   {key:'sales_delivery', label:'Sales Delivery (ยอดขายเดลิเวอรี่)', aliases:['sales delivery','ยอดขายเดลิเวอรี่','ยอดขายเดลิเวอรี','delivery sales']},
-  {key:'tc_store', label:'TC ร้าน (ลูกค้าร้าน)', aliases:['tc store','tc ร้าน','tcร้าน','ลูกค้าร้าน','tc_store']},
-  {key:'tc_delivery', label:'TC Delivery (ลูกค้าเดลิเวอรี่)', aliases:['tc delivery','tc เดลิเวอรี่','ลูกค้าเดลิเวอรี่','tc_delivery']},
+  {key:'tc_store', label:'TC ร้าน (ลูกค้าร้าน)', aliases:['tc store','tc ร้าน','tcร้าน','ลูกค้าร้าน','tc_store','tc หน้าร้าน']},
+  {key:'tc_delivery', label:'TC Delivery (ลูกค้าเดลิเวอรี่)', aliases:['tc delivery','tc เดลิเวอรี่','ลูกค้าเดลิเวอรี่','tc_delivery','tcเดลิเวอรี่']},
   {key:'sla_min', label:'SLA (นาที)', aliases:['sla','sla (min)','sla min','sla_min','เวลา sla','sla นาที','นาที']},
   {key:'cancel', label:'Cancel (TC Cancel)', aliases:['cancel','ยกเลิก','tc cancel','จำนวนยกเลิก']},
 ];
@@ -99,28 +99,59 @@ document.getElementById('file').addEventListener('change', e=>{
   const reader = new FileReader();
   reader.onload = evt => {
     try{
-      const wb = XLSX.read(evt.target.result, {type:'binary'});
+      const bytes = new Uint8Array(evt.target.result);
+      const isCsv = /\.csv$/i.test(f.name);
+      const wb = isCsv ? readCsvSmart(bytes) : XLSX.read(bytes, {type:'array'});
       const ws = wb.Sheets[wb.SheetNames[0]];
       const json = XLSX.utils.sheet_to_json(ws, {defval:''});
       if(!json.length){ document.getElementById('fileStatus').innerHTML = '<span class="err">ไม่พบข้อมูลในไฟล์</span>'; return; }
-      headers = Object.keys(json[0]);
-      rows = json;
+      // ล้างชื่อคอลัมน์: ตัด BOM/ช่องว่างหัวท้ายที่ทำให้จับคู่ภาษาไทยไม่ติด
+      headers = Object.keys(json[0]).map(h => h.toString().normalize('NFC').trim());
+      rows = json.map(r=>{
+        const clean = {};
+        Object.keys(r).forEach((k,i)=>{ clean[headers[i]] = r[k]; });
+        return clean;
+      });
       document.getElementById('fileStatus').innerHTML = '<span class="ok">อ่านไฟล์สำเร็จ</span> พบ ' + rows.length + ' แถว, ' + headers.length + ' คอลัมน์';
       buildMapUI();
     }catch(err){
       document.getElementById('fileStatus').innerHTML = '<span class="err">อ่านไฟล์ไม่สำเร็จ: '+err.message+'</span>';
     }
   };
-  reader.readAsBinaryString(f);
+  reader.readAsArrayBuffer(f);
 });
 
-function norm(s){ return s.toString().toLowerCase().replace(/[\s_./()-]/g,''); }
+// ไฟล์ CSV ที่ Excel เวอร์ชันไทยเซฟไว้ มักไม่ได้เป็น UTF-8 แต่เป็น Windows-874 (ANSI ไทย)
+// ถ้าอ่านเป็น UTF-8 ตรงๆ ตัวอักษรไทยจะกลายเป็นขยะ/อ่านไม่ออก จึงต้องตรวจสอบและสลับ codepage ให้อัตโนมัติ
+function readCsvSmart(bytes){
+  // มี BOM ของ UTF-8 อยู่แล้ว -> เป็น UTF-8 แน่นอน
+  if(bytes[0]===0xEF && bytes[1]===0xBB && bytes[2]===0xBF){
+    return XLSX.read(bytes, {type:'array'});
+  }
+  const utf8Text = new TextDecoder('utf-8', {fatal:false}).decode(bytes);
+  // ถ้าถอดเป็น UTF-8 แล้วเจอ replacement character (ตัวอักษรอ่านไม่ออก) แปลว่าไฟล์ไม่ใช่ UTF-8 จริง
+  if(!utf8Text.includes('\uFFFD')){
+    return XLSX.read(utf8Text, {type:'string'});
+  }
+  // fallback: ลองถอดแบบ Windows-874 (ไทย) ซึ่งเป็นค่าเริ่มต้นของ Excel บนวินโดวส์ภาษาไทย
+  return XLSX.read(bytes, {type:'array', codepage:874});
+}
+
+function norm(s){
+  return s.toString()
+    .normalize('NFC')
+    .replace(/[\u200B-\u200D\uFEFF]/g,'')   // ตัด zero-width space / BOM ที่หลงเหลือในเซลล์
+    .replace(/\u00A0/g,' ')                 // non-breaking space -> ช่องว่างปกติ
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_./()-]/g,'');
+}
 
 function guessColumn(aliases){
   const na = aliases.map(norm);
   let h = headers.find(h => na.includes(norm(h)));
   if(h) return h;
-  h = headers.find(h => na.some(a => norm(h).includes(a)));
+  h = headers.find(h => na.some(a => norm(h).includes(a) || a.includes(norm(h))));
   return h || '';
 }
 
@@ -183,6 +214,19 @@ const SUPABASE_URL = 'https://axcudclbkzhtdnezhlbi.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_we-LE76OhWvNwg2Gd25Ccg_-kpE3Rjq';
 // ====================================================================
 
+// ดึงข้อความ error จริงที่ Supabase ส่งกลับมา (เช่น "Invalid API key", "permission denied", "JWT expired")
+// แทนที่จะโชว์แค่ "HTTP 401" เฉยๆ ซึ่งบอกสาเหตุไม่ได้
+async function describeError(res){
+  let detail = '';
+  try{
+    const j = await res.clone().json();
+    detail = j.message || j.error_description || j.error || j.hint || JSON.stringify(j);
+  }catch(_){
+    try{ detail = await res.text(); }catch(_2){ /* ignore */ }
+  }
+  return 'HTTP ' + res.status + (detail ? ' — ' + detail : '');
+}
+
 async function saveData(){
   const btn = document.getElementById('saveBtn');
   btn.disabled = true; btn.textContent = 'กำลังบันทึก…';
@@ -210,7 +254,7 @@ async function saveData(){
       },
       body: JSON.stringify({ records, updated_at: new Date().toISOString() })
     });
-    if(!res.ok) throw new Error('HTTP ' + res.status);
+    if(!res.ok) throw new Error(await describeError(res));
     document.getElementById('saveStatus').innerHTML = '<span class="ok">บันทึกสำเร็จ</span> อัปเดต '+records.length+' รายการ — หน้า Dashboard จะแสดงข้อมูลใหม่เมื่อรีเฟรช';
     checkCurrent();
   }catch(err){
@@ -224,7 +268,7 @@ async function checkCurrent(){
     const res = await fetch(SUPABASE_URL + '/rest/v1/sla_data?id=eq.1&select=records,updated_at', {
       headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY }
     });
-    if(!res.ok) throw new Error('HTTP ' + res.status);
+    if(!res.ok) throw new Error(await describeError(res));
     const data = await res.json();
     const row = data[0] || {};
     if(row.records && row.records.length){
