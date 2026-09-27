@@ -8,79 +8,101 @@
 <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#0a0f1c; --panel:#111a2e; --panel2:#0e1526; --line:rgba(255,255,255,.08);
-  --text:#e7edf7; --muted:#8b98b8; --cyan:#22d3ee; --amber:#f5a623; --red:#f4506a; --green:#34d399;
+  --bg:#eef6f0; --panel:#ffffff; --panel2:#f7fbf8; --line:#dde8e0;
+  --text:#17241c; --muted:#6d7d73; --green:#2f7d52; --green-dark:#1f6b4a; --green-light:#eaf4ec;
+  --amber:#e8a33d; --red:#e0525f; --pink-bg:#fbe4e6; --badge-bg:#3a3f3c;
   box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
 *{box-sizing:border-box}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;background:var(--bg);color:var(--text);font-family:'Prompt',sans-serif;min-height:100%}
 .mono{font-family:'IBM Plex Mono',monospace}
-header{padding:22px 20px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(10,15,28,.92);backdrop-filter:blur(8px);z-index:10;padding-top:calc(22px + env(safe-area-inset-top,0px))}
-header h1{margin:0;font-size:20px;letter-spacing:.3px;display:flex;align-items:center;gap:10px}
-header h1 .dot{width:9px;height:9px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan)}
+header{padding:20px 20px 14px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(238,246,240,.94);backdrop-filter:blur(8px);z-index:10;padding-top:calc(20px + env(safe-area-inset-top,0px))}
+.headerRow{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+header h1{margin:0;font-size:21px;letter-spacing:.2px;display:flex;align-items:center;gap:10px;font-weight:700}
 header .sub{color:var(--muted);font-size:12.5px;margin-top:4px}
+.slaBadge{background:var(--badge-bg);color:#fff;font-size:12px;font-weight:600;padding:8px 14px;border-radius:8px;white-space:nowrap}
 main{max-width:1180px;margin:0 auto;padding:18px 16px 60px}
-.panel{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}
-.panel h2{font-size:13px;margin:0 0 12px;color:var(--muted);font-weight:600;letter-spacing:.2px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 1px 2px rgba(20,40,25,.04)}
+.panel h2{font-size:14px;margin:0 0 12px;color:var(--text);font-weight:700;letter-spacing:.2px}
+.connStatus{font-size:12.5px;color:var(--muted);padding:12px 16px}
 .filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
-.field label{display:block;font-size:11.5px;color:var(--muted);margin-bottom:5px}
-select,input[type=text]{width:100%;background:#0c1424;border:1px solid var(--line);color:var(--text);padding:9px 10px;border-radius:8px;font-family:inherit;font-size:13.5px}
+.field label{display:block;font-size:11.5px;color:var(--muted);margin-bottom:5px;font-weight:600}
+select,input[type=text],input[type=date]{width:100%;background:#fff;border:1px solid var(--line);color:var(--text);padding:9px 10px;border-radius:8px;font-family:inherit;font-size:13.5px}
 .actions{display:flex;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap}
-button.primary{background:var(--cyan);color:#04222b;border:none;padding:10px 18px;border-radius:8px;font-weight:600;font-size:13.5px;cursor:pointer}
-button.ghost{background:transparent;border:1px solid var(--line);color:var(--text);padding:10px 14px;border-radius:8px;font-size:13px;cursor:pointer}
+button.primary{background:var(--green);color:#fff;border:none;padding:10px 20px;border-radius:8px;font-weight:600;font-size:13.5px;cursor:pointer}
+button.primary:hover{background:var(--green-dark)}
+button.ghost{background:#fff;border:1px solid var(--green);color:var(--green-dark);padding:10px 16px;border-radius:8px;font-size:13px;cursor:pointer;font-weight:600}
 .count{color:var(--muted);font-size:12.5px;margin-left:auto}
-.count b{color:var(--cyan)}
+.count b{color:var(--green-dark)}
+.note{font-size:11.5px;color:var(--muted);margin-top:8px}
+.kpiRow{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:0 1px 2px rgba(20,40,25,.04)}
+.card .label{font-size:12px;color:var(--muted);font-weight:600}
+.card .val{font-size:21px;font-weight:700;margin-top:8px;color:var(--text)}
+.card .sub{font-size:11px;color:var(--muted);margin-top:4px}
+.card.warn .val{color:var(--red)}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 @media(max-width:700px){.grid3{grid-template-columns:1fr}}
 .grid7{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
 @media(max-width:900px){.grid7{grid-template-columns:repeat(2,1fr)}}
-.card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px}
-.card .label{font-size:12px;color:var(--muted)}
-.card .val{font-size:22px;font-weight:600;margin-top:6px}
-.card .sub{font-size:11px;color:var(--muted);margin-top:4px}
-.card.accent{border-color:rgba(34,211,238,.35)}
-.card.warn .val{color:var(--amber)}
 .tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 @media(max-width:700px){.tiers{grid-template-columns:1fr}}
 .tier{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--panel2)}
-.tier .t{font-size:12px;color:var(--muted);margin-bottom:8px}
-.tier .n{font-size:24px;font-weight:600}
+.tier .t{font-size:12px;color:var(--muted);font-weight:600}
+.tier .n{font-size:22px;font-weight:700;margin-top:4px}
 .tier .p{font-size:12px;color:var(--muted)}
-.bar{height:6px;border-radius:4px;background:#0c1424;margin-top:10px;overflow:hidden}
-.bar i{display:block;height:100%;background:var(--cyan)}
+.bar{height:6px;border-radius:4px;background:var(--green-light);margin-top:10px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--green)}
+.alertBox{border-left:4px solid var(--green);background:var(--green-light);font-size:13px;color:var(--text);padding:14px 16px}
 .empty{color:var(--muted);text-align:center;padding:40px 10px;font-size:13.5px}
 .scroll{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:4px}
-th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;white-space:nowrap}
-th{color:var(--muted);font-weight:500}
+th,td{border:1px solid var(--line);padding:7px 9px;text-align:left;white-space:nowrap}
+th{color:var(--muted);font-weight:600;background:var(--green-light)}
+table.greenHead th{background:var(--green-dark);color:#fff;font-weight:700}
 ul.insights{margin:0;padding-left:18px;font-size:13px;line-height:1.9}
-.note{font-size:11.5px;color:var(--muted);margin-top:6px}
 footer{text-align:center;color:var(--muted);font-size:11.5px;padding:10px 0 30px}
+.badge{display:inline-block;background:var(--pink-bg);color:var(--red);font-size:12px;font-weight:700;padding:5px 12px;border-radius:20px}
+.panelHead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.chartsGrid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:900px){.chartsGrid{grid-template-columns:1fr}}
+.gauge,.donut{width:150px;height:150px;border-radius:50%;margin:14px auto 6px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700}
+.gaugeWrap,.donutWrap{display:flex;flex-direction:column;align-items:center;text-align:center}
+.legendRow{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;font-size:12px;color:var(--muted);margin-top:6px}
+.legendRow span{display:inline-flex;align-items:center;gap:5px}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.axisMuted{fill:var(--muted);font-size:10px;font-family:'Prompt',sans-serif}
 </style>
 </head>
 <body>
 <header>
-  <h1><span class="dot"></span>SLA DELIVERY COMMAND CENTER</h1>
+  <div class="headerRow">
+    <h1><span id="titleText">🚚 SLA DELIVERY COMMAND CENTER</span></h1>
+    <div class="slaBadge" id="slaBadge">สถานะ SLA: —</div>
+  </div>
   <div class="sub" id="updatedAt">กำลังโหลดข้อมูล…</div>
 </header>
 <main>
+  <div class="panel connStatus" id="connStatus">กำลังเชื่อมต่อข้อมูลล่าสุด…</div>
+
   <div class="panel">
     <h2>Filters</h2>
     <div class="filters">
-      <div class="field"><label>Zone</label><select id="f_zone"><option value="">All Zone</option></select></div>
-      <div class="field"><label>ฝ่าย</label><select id="f_div"><option value="">All ฝ่าย</option></select></div>
-      <div class="field"><label>เขต</label><select id="f_wm"><option value="">All เขต</option></select></div>
-      <div class="field"><label>FC</label><select id="f_fc"><option value="">All FC</option></select></div>
-      <div class="field"><label>Organize</label><select id="f_organize"><option value="">All Organize</option></select></div>
-      <div class="field"><label>วันที่</label><select id="f_date"><option value="">All วันที่</option></select></div>
-      <div class="field"><label>Store ID</label><input type="text" id="f_store" inputmode="numeric" placeholder="พิมพ์เลขร้าน..."></div>
+      <div class="field"><label id="lbl_zone">Zone</label><select id="f_zone"><option value="">เลือก Zone</option></select></div>
+      <div class="field"><label id="lbl_div">ฝ่าย</label><select id="f_div"><option value="">All ฝ่าย</option></select></div>
+      <div class="field"><label id="lbl_wm">เขต</label><select id="f_wm"><option value="">All เขต</option></select></div>
+      <div class="field"><label id="lbl_fc">FC</label><select id="f_fc"><option value="">All FC</option></select></div>
+      <div class="field"><label id="lbl_organize">Organize</label><select id="f_organize"><option value="">All Organize</option></select></div>
+      <div class="field"><label id="lbl_store">Store ID</label><input type="text" id="f_store" inputmode="numeric" placeholder="ค้นหา Store ID (ตัวเลข)"></div>
+      <div class="field"><label id="lbl_date">วันที่</label><select id="f_date"><option value="">All วันที่</option></select></div>
     </div>
     <div class="actions">
-      <button class="primary" onclick="applyFilter()">Apply Filter</button>
-      <button class="ghost" onclick="loadData(true)">รีเฟรชข้อมูล</button>
+      <button class="primary" id="applyBtn" onclick="applyFilter()">Apply Filter</button>
+      <button class="ghost" onclick="loadData(true)">รีเฟรชฟิลเตอร์</button>
       <span class="count">จำนวนรายการที่เลือก <b id="rowCount">0</b> แถว</span>
     </div>
+    <div class="note" id="filterNote"></div>
   </div>
 
   <div class="panel" id="storeDetailPanel" style="display:none">
@@ -104,14 +126,14 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;padding:10px 0 30px
       <div class="tiers" id="sd_steps"></div>
     </div>
     <div class="grid3" style="margin-top:16px">
-      <div class="card" style="display:flex;flex-direction:column;align-items:center;justify-content:center">
+      <div class="card gaugeWrap">
         <div class="label" style="align-self:flex-start">Process Breakdown</div>
-        <div id="sd_donut" style="width:120px;height:120px;border-radius:50%;margin:10px 0;display:flex;align-items:center;justify-content:center"></div>
+        <div id="sd_donut" class="donut"></div>
         <div id="sd_donutLegend" style="font-size:11px;color:var(--muted);text-align:center"></div>
       </div>
-      <div class="card" style="display:flex;flex-direction:column;align-items:center;justify-content:center">
+      <div class="card gaugeWrap">
         <div class="label" style="align-self:flex-start">Capacity Utilization</div>
-        <div id="sd_gauge" style="width:120px;height:120px;border-radius:50%;margin:10px 0;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600"></div>
+        <div id="sd_gauge" class="gauge"></div>
         <div class="sub">Within SLA 45 min</div>
       </div>
       <div class="card">
@@ -121,35 +143,33 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;padding:10px 0 30px
     </div>
   </div>
 
-  <div class="panel">
-    <h2>Overview</h2>
-    <div class="grid3">
-      <div class="card accent"><div class="label">Total Sales</div><div class="val mono" id="k_totalSales">-</div><div class="sub">Store Sales + Delivery Sales</div></div>
-      <div class="card"><div class="label">Store / Average</div><div class="val mono" id="k_storeAvg">-</div><div class="sub" id="k_storeAvgSub">Store Sales เฉลี่ยต่อแถวข้อมูล: -</div></div>
-      <div class="card accent"><div class="label">Delivery Sales</div><div class="val mono" id="k_deliverySales2">-</div><div class="sub" id="k_deliveryPctSub">สัดส่วนต่อ Total Sales: -</div></div>
+  <div class="kpiRow" id="kpiRow">
+    <div class="card" id="kc_totalSales"><div class="label">Total Sales</div><div class="val mono" id="k_totalSales">-</div><div class="sub">Store Sales + Delivery Sales</div></div>
+    <div class="card" id="kc_storeAvg"><div class="label">Store/Average</div><div class="val mono" id="k_storeAvg">-</div><div class="sub">เฉลี่ยจากร้านที่เลือก</div></div>
+    <div class="card" id="kc_deliverySales"><div class="label">Delivery Sales /Average</div><div class="val mono" id="k_deliverySales2">-</div><div class="sub">เฉลี่ยจากร้านที่เลือก</div></div>
+    <div class="card" id="kc_avgSla"><div class="label">Average SLA Time</div><div class="val mono" id="k_avgSla">-</div><div class="sub">นาที เฉลี่ยทุกออเดอร์ที่เลือก</div></div>
+    <div class="card" id="kc_cancel"><div class="label">Cancel Rate</div><div class="val mono" id="k_cancel">-</div><div class="sub">TC Cancel / TC Delivery</div></div>
+    <div class="card" id="kc_capacity"><div class="label">Capacity Utilization</div><div class="val mono" id="k_capacity">-</div><div class="sub">เวลาเฉลี่ยเทียบเป้าหมาย 45 นาที</div></div>
+    <div class="card" id="kc_callLate"><div class="label">Call · จัดส่งล่าช้า</div><div class="val mono" id="k_callLate">-</div><div class="sub">จำนวนตาม Filter ที่เลือก</div></div>
+  </div>
+
+  <div class="panel" id="trendPanel">
+    <div class="panelHead">
+      <div>
+        <h2 style="margin-bottom:2px">ร้าน SLA เฉลี่ยเกิน 45 นาทีต่อเนื่อง 2 เดือน</h2>
+        <div class="note" style="margin:0">เทียบค่าเฉลี่ยรายเดือนตาม Filter ที่เลือก โดยใช้ข้อมูลครบทั้งเดือน</div>
+      </div>
+      <span class="badge" id="trendBadge">— ร้าน</span>
+    </div>
+    <div class="scroll">
+      <table><thead><tr><th>Store ID</th><th>ชื่อร้าน</th><th>เดือนก่อน · SLA เฉลี่ย</th><th>เดือนล่าสุด · SLA เฉลี่ย</th><th>แนวโน้ม</th></tr></thead><tbody id="trendBody"><tr><td colspan="5" style="text-align:center;color:var(--muted)">เลือก Filter แล้วกด Apply Filter เพื่อคำนวณ</td></tr></tbody></table>
     </div>
   </div>
 
-  <div class="panel">
-    <h2>Performance</h2>
-    <div class="grid7">
-      <div class="card accent"><div class="label">Sales Store</div><div class="val mono" id="k_salesStore">-</div><div class="sub">ยอดขายหน้าร้าน</div></div>
-      <div class="card"><div class="label">TC ร้าน</div><div class="val mono" id="k_tcStore">-</div><div class="sub">ลูกค้าร้าน</div></div>
-      <div class="card"><div class="label">TA ร้าน</div><div class="val mono" id="k_taStore">-</div><div class="sub">ต่อบิล/วัน</div></div>
-      <div class="card accent"><div class="label">Sales Delivery</div><div class="val mono" id="k_salesDelivery">-</div><div class="sub">ยอดขายเดลิเวอรี่</div></div>
-      <div class="card"><div class="label">% of Sale</div><div class="val mono" id="k_pctSale">-</div><div class="sub">สัดส่วนเดลิเวอรี่/รวม</div></div>
-      <div class="card"><div class="label">TC Delivery</div><div class="val mono" id="k_tcDelivery">-</div><div class="sub">ลูกค้าเดลิเวอรี่</div></div>
-      <div class="card"><div class="label">TA Delivery</div><div class="val mono" id="k_taDelivery">-</div><div class="sub">ต่อบิลเดลิเวอรี่</div></div>
-      <div class="card warn"><div class="label">Cancel Rate</div><div class="val mono" id="k_cancel">-</div><div class="sub">TC Cancel / TC Delivery</div></div>
-    </div>
-  </div>
+  <div class="panel alertBox" id="alertBox">ยังไม่คำนวณ กรุณาเลือก Filter แล้วกด Apply Filter</div>
 
-  <div class="panel">
+  <div class="panel" id="tiersPanel">
     <h2>เงื่อนไขคุณภาพ</h2>
-    <div class="grid7" style="grid-template-columns:repeat(2,1fr);margin-bottom:14px">
-      <div class="card accent"><div class="label">Average SLA Time</div><div class="val mono" id="k_avgSla">-</div><div class="sub">นาที เฉลี่ยทุกออเดอร์ที่เลือก</div></div>
-      <div class="card"><div class="label">Capacity Utilization</div><div class="val mono" id="k_capacity">-</div><div class="sub">เวลาเฉลี่ยเทียบเป้าหมาย 45 นาที</div></div>
-    </div>
     <div class="tiers">
       <div class="tier"><div class="t">SLA &lt; 45 min</div><div class="n mono" id="t1n">-</div><div class="p mono" id="t1p">-</div><div class="bar"><i id="t1b" style="width:0%"></i></div></div>
       <div class="tier"><div class="t">SLA 45–60 min</div><div class="n mono" id="t2n">-</div><div class="p mono" id="t2p">-</div><div class="bar"><i id="t2b" style="width:0%;background:var(--amber)"></i></div></div>
@@ -157,25 +177,47 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;padding:10px 0 30px
     </div>
   </div>
 
-  <div class="panel">
+  <div class="chartsGrid">
+    <div class="panel" id="hourlyPanel">
+      <h2>SLA vs TC รายชั่วโมง</h2>
+      <div id="hourlyChartWrap"></div>
+      <div class="note" id="hourlyEmptyNote">เลือก Filter เพื่อแสดงข้อมูลรายชั่วโมง</div>
+      <details style="margin-top:8px"><summary style="cursor:pointer;font-size:12.5px;color:var(--muted)">ดูตัวเลขของแต่ละชั่วโมง</summary>
+        <div class="scroll"><table><thead><tr><th>ช่วงเวลา</th><th>SLA เฉลี่ย (นาที)</th><th>TC เฉลี่ย</th></tr></thead><tbody id="hourlyBody"></tbody></table></div>
+      </details>
+    </div>
+    <div class="panel" id="capacityPanel">
+      <h2>Capacity Utilization</h2>
+      <div class="gaugeWrap"><div id="capGauge" class="gauge">-</div><div class="sub" id="capGaugeNote">Waiting for Filter</div></div>
+    </div>
+  </div>
+
+  <div class="chartsGrid">
+    <div class="panel" id="processPanel">
+      <h2>Process Breakdown</h2>
+      <div class="donutWrap"><div id="procDonut" class="donut"></div></div>
+      <div class="legendRow">
+        <span><i class="dot" style="background:#34d399"></i>รับ</span>
+        <span><i class="dot" style="background:#3b82f6"></i>จัด</span>
+        <span><i class="dot" style="background:#f0ad4e"></i>รอส่ง</span>
+        <span><i class="dot" style="background:#e0525f"></i>ส่ง</span>
+      </div>
+    </div>
+    <div class="panel" id="rootCausePanel">
+      <h2>Root Cause Heatmap</h2>
+      <div class="scroll"><table><thead><tr><th>FC</th><th>รับ</th><th>จัด</th><th>รอส่ง</th><th>ส่ง</th><th>รวม</th></tr></thead><tbody id="processBody"></tbody></table></div>
+      <div class="note">มาตรฐาน: รับ ≤ 1 นาที, จัด ≤ 9 นาที, รอส่ง + ส่ง ≤ 35 นาที และรวม ≤ 45 นาที</div>
+    </div>
+  </div>
+
+  <div class="panel" id="insightsPanel">
     <h2>💡 Executive Insights</h2>
     <ul class="insights" id="insightsList"><li>เลือก Filter แล้วกด Apply Filter เพื่อคำนวณสถานะ SLA</li></ul>
   </div>
 
-  <div class="panel" id="hourlyPanel" style="display:none">
-    <h2>SLA vs TC รายชั่วโมง</h2>
-    <div class="scroll"><table><thead><tr><th>ช่วงเวลา</th><th>SLA เฉลี่ย (นาที)</th><th>TC เฉลี่ย</th></tr></thead><tbody id="hourlyBody"></tbody></table></div>
-  </div>
-
-  <div class="panel" id="processPanel" style="display:none">
-    <h2>Process Breakdown / Root Cause Heatmap</h2>
-    <div class="scroll"><table><thead><tr><th>FC</th><th>รับ</th><th>จัด</th><th>รอส่ง</th><th>ส่ง</th><th>รวม</th></tr></thead><tbody id="processBody"></tbody></table></div>
-    <div class="note">มาตรฐาน: รับ ≤ 1 นาที, จัด ≤ 9 นาที, รอส่ง + ส่ง ≤ 35 นาที และรวม ≤ 45 นาที</div>
-  </div>
-
-  <div class="panel">
+  <div class="panel" id="fcDetailPanel">
     <h2>FC Performance Detail</h2>
-    <div class="scroll"><table><thead><tr><th>Store</th><th>Zone</th><th>Sales</th><th>TC</th><th>SLA (นาที)</th><th>Cancel</th><th>Status</th></tr></thead><tbody id="fcDetailBody"></tbody></table></div>
+    <div class="scroll"><table class="greenHead"><thead><tr><th>Store</th><th>Zone</th><th>Sales</th><th>TC</th><th>SLA (นาที)</th><th>Cancel</th><th>Status</th></tr></thead><tbody id="fcDetailBody"></tbody></table></div>
   </div>
 
   <div id="emptyState" class="empty" style="display:none">ยังไม่มีข้อมูล — อัปโหลดไฟล์ Excel/CSV ได้ที่หน้า Admin</div>
@@ -183,6 +225,64 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;padding:10px 0 30px
 <footer>ข้อมูลอัปเดตจากหน้า Admin • SLA Delivery Command Center</footer>
 <script>
 let ALL = [];
+
+// ==== ค่าตั้งต้น (จะถูกทับด้วยค่าจาก Supabase ถ้ามี) ====
+const DEFAULT_CFG = {
+  title: '🚚 SLA DELIVERY COMMAND CENTER',
+  slaBadgeLabel: 'สถานะ SLA',
+  filterLabels: {zone:'Zone', division:'ฝ่าย', wm:'เขต', fc:'FC', store:'Store ID', date:'วันที่'},
+  applyLabel: 'Apply Filter',
+  visibility: {
+    totalSales:true, storeAvg:true, deliverySales:true, avgSla:true, cancelRate:true, capacity:true, callLate:true,
+    trendTable:true, tiers:true, hourlyChart:true, capacityGauge:true, processBreakdown:true, rootCause:true, insights:true, fcDetail:true
+  },
+  calcMode: { tc:'sum', ta:'avg', pctSales:'avg', cancelPct:'avg', stepTimes:'avg', fcDetail:'avg' }
+};
+let CFG = JSON.parse(JSON.stringify(DEFAULT_CFG));
+
+function deepMerge(base, extra){
+  if(!extra) return base;
+  const out = Array.isArray(base) ? base.slice() : Object.assign({}, base);
+  Object.keys(extra).forEach(k=>{
+    if(extra[k] && typeof extra[k]==='object' && !Array.isArray(extra[k]) && base[k] && typeof base[k]==='object'){
+      out[k] = deepMerge(base[k], extra[k]);
+    } else out[k] = extra[k];
+  });
+  return out;
+}
+
+function applyCfg(){
+  document.getElementById('titleText').textContent = CFG.title;
+  document.getElementById('slaBadge').textContent = CFG.slaBadgeLabel + ': —';
+  document.getElementById('lbl_zone').textContent = CFG.filterLabels.zone;
+  document.getElementById('lbl_div').textContent = CFG.filterLabels.division;
+  document.getElementById('lbl_wm').textContent = CFG.filterLabels.wm;
+  document.getElementById('lbl_fc').textContent = CFG.filterLabels.fc;
+  document.getElementById('lbl_store').textContent = CFG.filterLabels.store;
+  document.getElementById('lbl_date').textContent = CFG.filterLabels.date;
+  document.getElementById('applyBtn').textContent = CFG.applyLabel;
+
+  const v = CFG.visibility;
+  const show = (id, on) => { const el = document.getElementById(id); if(el) el.style.display = on ? '' : 'none'; };
+  show('kc_totalSales', v.totalSales); show('kc_storeAvg', v.storeAvg); show('kc_deliverySales', v.deliverySales);
+  show('kc_avgSla', v.avgSla); show('kc_cancel', v.cancelRate); show('kc_capacity', v.capacity); show('kc_callLate', v.callLate);
+  show('trendPanel', v.trendTable); show('tiersPanel', v.tiers);
+  show('hourlyPanel', v.hourlyChart); show('capacityPanel', v.capacityGauge);
+  show('processPanel', v.processBreakdown); show('rootCausePanel', v.rootCause);
+  show('insightsPanel', v.insights); show('fcDetailPanel', v.fcDetail);
+}
+
+async function loadCfg(){
+  try{
+    const res = await fetch(SUPABASE_URL + '/rest/v1/sla_config?id=eq.1&select=config', { headers:{apikey:SUPABASE_KEY} });
+    if(res.ok){
+      const data = await res.json();
+      if(data[0] && data[0].config) CFG = deepMerge(JSON.parse(JSON.stringify(DEFAULT_CFG)), data[0].config);
+    }
+  }catch(e){ /* ใช้ค่าตั้งต้นถ้าโหลดไม่ได้ */ }
+  applyCfg();
+}
+
 const nf = n => isFinite(n) ? n.toLocaleString('en-US',{maximumFractionDigits:1}) : '-';
 const distinct = (arr,key) => [...new Set(arr.map(r=>r[key]).filter(v=>v!==undefined && v!==null && v!==''))].sort();
 
@@ -231,13 +331,48 @@ function avgOf(arr,key){
   const vals = arr.map(r=>Number(r[key])).filter(v=>!isNaN(v) && r[key]!=='' && r[key]!==undefined);
   return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
 }
+function agg(arr,key,mode){ return mode==='avg' ? avgOf(arr,key) : sum(arr,key); }
 function groupBy(arr,key){
   const map = new Map();
   arr.forEach(r=>{ const k = r[key] ?? ''; if(!map.has(k)) map.set(k,[]); map.get(k).push(r); });
   return map;
 }
-
 function hasField(key){ return ALL.some(r=> r[key]!==undefined && r[key]!==''); }
+
+// ==== แปลงวันที่ -> เดือน (รองรับ excel serial / Thai month name / dd-mm-yyyy) ====
+const TH_MONTHS = {'มกราคม':1,'กุมภาพันธ์':2,'มีนาคม':3,'เมษายน':4,'พฤษภาคม':5,'มิถุนายน':6,'กรกฎาคม':7,'สิงหาคม':8,'กันยายน':9,'ตุลาคม':10,'พฤศจิกายน':11,'ธันวาคม':12};
+const TH_MONTH_SHORT = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+function parseMonthKey(v){
+  if(v===undefined || v===null || v==='') return null;
+  if(typeof v==='number' && v>20000 && v<60000){
+    const d = new Date(Math.round((v-25569)*86400*1000));
+    if(!isNaN(d.getTime())) return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+  }
+  const s = String(v).trim();
+  for(const [name,num] of Object.entries(TH_MONTHS)){
+    if(s.includes(name)){
+      const ym = s.match(/(\d{4})/);
+      let y = ym ? parseInt(ym[1]) : null;
+      if(y && y>2400) y -= 543;
+      if(y) return y+'-'+String(num).padStart(2,'0');
+    }
+  }
+  const dm = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+  if(dm){
+    let mm=+dm[2], yy=+dm[3];
+    if(yy<100) yy+=2000;
+    if(yy>2400) yy-=543;
+    if(mm>=1 && mm<=12) return yy+'-'+String(mm).padStart(2,'0');
+  }
+  const d2 = new Date(s);
+  if(!isNaN(d2.getTime())) return d2.getFullYear()+'-'+String(d2.getMonth()+1).padStart(2,'0');
+  return null;
+}
+function monthLabel(key){
+  if(!key) return '-';
+  const [y,m] = key.split('-').map(Number);
+  return TH_MONTH_SHORT[m] + ' ' + (y+543);
+}
 
 function renderStoreDetail(rows){
   const panel = document.getElementById('storeDetailPanel');
@@ -286,27 +421,19 @@ function renderStoreDetail(rows){
       const pct = Math.min(s.v/s.target*100,100);
       const ok = s.v <= s.target;
       return '<div class="tier"><div class="t">'+s.label+'</div><div class="n mono">'+nf(s.v)+' นาที</div>'+
-        '<div class="bar"><i style="width:'+pct+'%;background:'+(ok?'var(--green)':'var(--red)')+'"></i></div>'+
-        '<div class="p" style="color:'+(ok?'var(--green)':'var(--red)')+'">'+(ok?'ปกติ':'เกินเป้า')+'</div></div>';
+        '<div class="bar"><i style="width:'+pct+'%;background:'+(ok?'#34d399':'var(--red)')+'"></i></div>'+
+        '<div class="p" style="color:'+(ok?'#1f9d6b':'var(--red)')+'">'+(ok?'ปกติ':'เกินเป้า')+'</div></div>';
     }).join('');
-    const total = (rc+pk+wt+dl) || 1;
-    const segs = [{v:rc,c:'#34d399'},{v:pk,c:'#22d3ee'},{v:wt,c:'#f5a623'},{v:dl,c:'#f4506a'}];
-    let acc = 0;
-    const stops = segs.map(s=>{ const start = acc/total*360; acc += s.v; const end = acc/total*360; return s.c+' '+start+'deg '+end+'deg'; }).join(',');
-    donut.style.background = 'conic-gradient('+stops+')';
-    donut.innerHTML = '<div style="background:var(--panel2);width:78px;height:78px;border-radius:50%"></div>';
-    document.getElementById('sd_donutLegend').innerHTML = 'รับ '+nf(rc/total*100)+'% · จัด '+nf(pk/total*100)+'% · รอส่ง '+nf(wt/total*100)+'% · ส่ง '+nf(dl/total*100)+'%';
+    renderDonut(donut, document.getElementById('sd_donutLegend'), [
+      {v:rc,c:'#34d399',l:'รับ'},{v:pk,c:'#3b82f6',l:'จัด'},{v:wt,c:'#f0ad4e',l:'รอส่ง'},{v:dl,c:'#e0525f',l:'ส่ง'}
+    ]);
   } else {
     stepsWrap.style.display = 'none';
-    donut.style.background = '#0c1424';
-    donut.innerHTML = '';
+    donut.style.background = 'var(--green-light)'; donut.textContent = '';
     document.getElementById('sd_donutLegend').textContent = 'ไม่มีข้อมูลเวลารายขั้นตอน';
   }
 
-  const capPct = slaRs.length ? Math.min(avgSla/45*100,100) : 0;
-  const gauge = document.getElementById('sd_gauge');
-  gauge.style.background = slaRs.length ? 'conic-gradient(var(--cyan) '+(capPct*3.6)+'deg, #0c1424 0deg)' : '#0c1424';
-  gauge.innerHTML = '<div style="background:var(--panel2);width:78px;height:78px;border-radius:50%;display:flex;align-items:center;justify-content:center">'+(slaRs.length?nf(capPct)+'%':'-')+'</div>';
+  renderGauge(document.getElementById('sd_gauge'), slaRs.length ? Math.min(avgSla/45*100,999) : null);
 
   if(hasField('order_hour')){
     const groups = groupBy(rows,'order_hour');
@@ -322,6 +449,100 @@ function renderStoreDetail(rows){
   }
 }
 
+// ==== gauge / donut แบบ conic-gradient ====
+function renderGauge(el, pct){
+  if(pct===null || pct===undefined || isNaN(pct)){
+    el.style.background = 'var(--green-light)';
+    el.innerHTML = '<div class="mono" style="font-size:15px;color:var(--muted)">Waiting</div>';
+    return;
+  }
+  const clamped = Math.max(0, Math.min(pct, 150));
+  const color = pct>100 ? 'var(--red)' : (pct>=80 ? 'var(--amber)' : 'var(--green)');
+  el.style.background = 'conic-gradient('+color+' '+(Math.min(clamped,100)*3.6)+'deg, var(--green-light) 0deg)';
+  el.innerHTML = '<div style="background:#fff;width:112px;height:112px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700">'+nf(pct)+'%</div>';
+}
+function renderDonut(el, legendEl, segs){
+  const total = segs.reduce((a,s)=>a+s.v,0) || 1;
+  let acc = 0;
+  const stops = segs.map(s=>{ const start=acc/total*360; acc+=s.v; const end=acc/total*360; return s.c+' '+start+'deg '+end+'deg'; }).join(',');
+  el.style.background = 'conic-gradient('+stops+')';
+  el.innerHTML = '<div style="background:#fff;width:112px;height:112px;border-radius:50%"></div>';
+  if(legendEl) legendEl.innerHTML = segs.map(s=>s.l+' '+nf(s.v/total*100)+'%').join(' · ');
+}
+
+// ==== กราฟเส้น SLA vs TC รายชั่วโมง (SVG ล้วน ไม่พึ่งไลบรารีภายนอก) ====
+function renderHourlyChart(data){
+  const wrap = document.getElementById('hourlyChartWrap');
+  const emptyNote = document.getElementById('hourlyEmptyNote');
+  if(!data.length){ wrap.innerHTML=''; emptyNote.style.display='block'; return; }
+  emptyNote.style.display = 'none';
+  const W=640,H=260,padL=42,padR=42,padT=10,padB=28;
+  const innerW=W-padL-padR, innerH=H-padT-padB;
+  const maxSla = Math.max(...data.map(d=>d.avgSla),1);
+  const maxTc = Math.max(...data.map(d=>d.avgTc),1);
+  const niceSla = Math.max(5, Math.ceil(maxSla/5)*5);
+  const niceTc = Math.max(5, Math.ceil(maxTc/5)*5);
+  const xStep = data.length>1 ? innerW/(data.length-1) : 0;
+  const pt = (i,v,nice) => [padL + i*xStep, padT + innerH - (v/nice*innerH)];
+  const slaPts = data.map((d,i)=>pt(i,d.avgSla,niceSla));
+  const tcPts = data.map((d,i)=>pt(i,d.avgTc,niceTc));
+  const toPoly = pts => pts.map(p=>p[0]+','+p[1]).join(' ');
+  let grid = '';
+  for(let i=0;i<=5;i++){
+    const y = padT + innerH - innerH*i/5;
+    grid += '<line x1="'+padL+'" y1="'+y+'" x2="'+(W-padR)+'" y2="'+y+'" stroke="var(--line)" stroke-width="1"/>';
+    grid += '<text class="axisMuted" x="'+(padL-8)+'" y="'+(y+3)+'" text-anchor="end">'+Math.round(niceSla*i/5)+'</text>';
+    grid += '<text class="axisMuted" x="'+(W-padR+8)+'" y="'+(y+3)+'" text-anchor="start">'+Math.round(niceTc*i/5)+'</text>';
+  }
+  const xLabels = data.map((d,i)=>'<text class="axisMuted" x="'+(padL+i*xStep)+'" y="'+(H-8)+'" text-anchor="middle">'+d.h+'</text>').join('');
+  const dots = pts => pts.map(p=>'<circle cx="'+p[0]+'" cy="'+p[1]+'" r="3" fill="inherit"/>').join('');
+  wrap.innerHTML =
+    '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto">' + grid + xLabels +
+    '<polyline points="'+toPoly(slaPts)+'" fill="none" stroke="var(--green)" stroke-width="2.5"/>' +
+    '<g fill="var(--green)">'+dots(slaPts)+'</g>' +
+    '<polyline points="'+toPoly(tcPts)+'" fill="none" stroke="#3b82f6" stroke-width="2.5"/>' +
+    '<g fill="#3b82f6">'+dots(tcPts)+'</g>' +
+    '</svg>' +
+    '<div class="legendRow"><span><i class="dot" style="background:var(--green)"></i>SLA เฉลี่ย (นาที)</span><span><i class="dot" style="background:#3b82f6"></i>TC เฉลี่ย</span></div>';
+}
+
+function renderTrendTable(rows){
+  const f = currentFilterValues();
+  const base = ALL.filter(r => Object.entries(f).every(([k,v]) => k==='order_date' || !v || String(r[k])===v) &&
+    (!document.getElementById('f_store').value.trim() || String(r.store??'').toLowerCase().includes(document.getElementById('f_store').value.trim().toLowerCase())));
+  const byStore = groupBy(base,'store');
+  const result = [];
+  byStore.forEach((rs, store)=>{
+    if(!store) return;
+    const byMonth = new Map();
+    rs.forEach(r=>{
+      const mk = parseMonthKey(r.order_date);
+      if(!mk) return;
+      if(!byMonth.has(mk)) byMonth.set(mk, []);
+      byMonth.get(mk).push(r);
+    });
+    const months = [...byMonth.keys()].sort().reverse();
+    if(months.length < 2) return;
+    const [latest, prev] = months;
+    const latestRows = byMonth.get(latest), prevRows = byMonth.get(prev);
+    const avgLatest = avgOf(latestRows,'sla_min');
+    const avgPrev = avgOf(prevRows,'sla_min');
+    if(avgLatest>45 && avgPrev>45){
+      const name = rs[0].storename || '';
+      let trend, trendColor;
+      if(avgLatest>avgPrev){ trend='เพิ่มขึ้น ▲'; trendColor='var(--red)'; }
+      else if(avgLatest<avgPrev){ trend='ลดลง ▼'; trendColor='#1f9d6b'; }
+      else { trend='คงที่ →'; trendColor='var(--muted)'; }
+      result.push({store, name, avgPrev, avgLatest, trend, trendColor, prevLabel:monthLabel(prev), latestLabel:monthLabel(latest)});
+    }
+  });
+  result.sort((a,b)=>b.avgLatest-a.avgLatest);
+  document.getElementById('trendBadge').textContent = result.length + ' ร้าน';
+  document.getElementById('trendBody').innerHTML = result.length
+    ? result.map(d=>'<tr><td>'+d.store+'</td><td>'+(d.name||'-')+'</td><td>'+nf(d.avgPrev)+' นาที ('+d.prevLabel+')</td><td>'+nf(d.avgLatest)+' นาที ('+d.latestLabel+')</td><td style="color:'+d.trendColor+';font-weight:600">'+d.trend+'</td></tr>').join('')
+    : '<tr><td colspan="5" style="text-align:center;color:var(--muted)">ไม่พบร้านที่ SLA เกิน 45 นาทีต่อเนื่อง 2 เดือน ตาม Filter ที่เลือก</td></tr>';
+}
+
 function applyFilter(){
   const f = currentFilterValues();
   const storeQuery = document.getElementById('f_store').value.trim().toLowerCase();
@@ -331,38 +552,38 @@ function applyFilter(){
   );
   document.getElementById('rowCount').textContent = rows.length;
   document.getElementById('emptyState').style.display = ALL.length ? 'none':'block';
+  document.getElementById('alertBox').style.display = rows.length ? 'none' : 'block';
+  document.getElementById('slaBadge').textContent = CFG.slaBadgeLabel + ': ' + (rows.length ? (avgOf(rows,'sla_min')<=45 ? 'ปกติ' : 'เกินเป้า') : '—');
 
   const salesStore = sum(rows,'sales_store');
   const salesDelivery = sum(rows,'sales_delivery');
-  const tcStore = sum(rows,'tc_store');
-  const tcDelivery = sum(rows,'tc_delivery');
-  const taStore = tcStore ? salesStore/tcStore : 0;
-  const taDelivery = tcDelivery ? salesDelivery/tcDelivery : 0;
+  const tcStore = agg(rows,'tc_store',CFG.calcMode.tc);
+  const tcDelivery = agg(rows,'tc_delivery',CFG.calcMode.tc);
+  const tcStoreSum = sum(rows,'tc_store'), tcDeliverySum = sum(rows,'tc_delivery');
+  const taStore = tcStoreSum ? salesStore/tcStoreSum : 0;
+  const taDelivery = tcDeliverySum ? salesDelivery/tcDeliverySum : 0;
   const totalSales = salesStore + salesDelivery;
   const pctSale = totalSales ? salesDelivery/totalSales*100 : 0;
   const cancel = sum(rows,'cancel');
-  const cancelRate = tcDelivery ? cancel/tcDelivery*100 : 0;
+  const cancelRate = tcDeliverySum ? cancel/tcDeliverySum*100 : 0;
   const storeAvg = rows.length ? salesStore/rows.length : 0;
+  const deliveryAvg = rows.length ? salesDelivery/rows.length : 0;
+  const callLate = sum(rows,'call_late');
 
   document.getElementById('k_totalSales').textContent = rows.length ? nf(totalSales) : '-';
   document.getElementById('k_storeAvg').textContent = rows.length ? nf(storeAvg) : '-';
-  document.getElementById('k_storeAvgSub').textContent = 'Store Sales เฉลี่ยต่อแถวข้อมูล: ' + (rows.length ? nf(storeAvg) : '-');
-  document.getElementById('k_deliverySales2').textContent = rows.length ? nf(salesDelivery) : '-';
-  document.getElementById('k_deliveryPctSub').textContent = 'สัดส่วนต่อ Total Sales: ' + (rows.length ? nf(pctSale)+'%' : '-');
+  document.getElementById('k_deliverySales2').textContent = rows.length ? nf(deliveryAvg) : '-';
+  document.getElementById('k_callLate').textContent = rows.length ? nf(callLate) : '-';
 
-  document.getElementById('k_salesStore').textContent = nf(salesStore);
-  document.getElementById('k_salesDelivery').textContent = nf(salesDelivery);
-  document.getElementById('k_tcStore').textContent = nf(tcStore);
-  document.getElementById('k_tcDelivery').textContent = nf(tcDelivery);
-  document.getElementById('k_taStore').textContent = nf(taStore);
-  document.getElementById('k_taDelivery').textContent = nf(taDelivery);
-  document.getElementById('k_pctSale').textContent = rows.length ? nf(pctSale)+'%' : '-';
   document.getElementById('k_cancel').textContent = rows.length ? nf(cancelRate)+'%' : '-';
 
   const slaRows = rows.filter(r=>r.sla_min!==undefined && r.sla_min!=='' && !isNaN(Number(r.sla_min)));
   const avgSla = slaRows.length ? sum(slaRows,'sla_min')/slaRows.length : 0;
   document.getElementById('k_avgSla').textContent = slaRows.length ? nf(avgSla)+' นาที' : '-';
-  document.getElementById('k_capacity').textContent = slaRows.length ? nf(Math.min(avgSla/45*100,999))+'%' : '-';
+  const capPct = slaRows.length ? Math.min(avgSla/45*100,999) : 0;
+  document.getElementById('k_capacity').textContent = slaRows.length ? nf(capPct)+'%' : '-';
+  renderGauge(document.getElementById('capGauge'), slaRows.length ? capPct : null);
+  document.getElementById('capGaugeNote').textContent = slaRows.length ? 'ตามข้อมูลที่เลือก' : 'Waiting for Filter';
 
   const t1 = slaRows.filter(r=>Number(r.sla_min)<45).length;
   const t2 = slaRows.filter(r=>Number(r.sla_min)>=45 && Number(r.sla_min)<=60).length;
@@ -377,16 +598,18 @@ function applyFilter(){
   renderHourly(rows);
   renderInsights(rows);
   renderStoreDetail(rows);
+  renderTrendTable(rows);
 }
 
 function renderFcDetail(rows){
+  const mode = CFG.calcMode.fcDetail;
   const groups = groupBy(rows,'store');
   const data = [...groups.entries()].map(([store, rs])=>{
-    const sales = sum(rs,'sales_store')+sum(rs,'sales_delivery');
-    const tc = sum(rs,'tc_store')+sum(rs,'tc_delivery');
+    const sales = agg(rs,'sales_store',mode)+agg(rs,'sales_delivery',mode);
+    const tc = agg(rs,'tc_store',mode)+agg(rs,'tc_delivery',mode);
     const slaRs = rs.filter(r=>r.sla_min!=='' && !isNaN(Number(r.sla_min)));
     const avgSla = slaRs.length ? sum(slaRs,'sla_min')/slaRs.length : 0;
-    const cancelPct = tc ? sum(rs,'cancel')/tc*100 : 0;
+    const cancelPct = agg(rs,'tc_delivery','sum') ? agg(rs,'cancel',mode)/agg(rs,'tc_delivery','sum')*100 : 0;
     const zone = rs[0]?.zone || '';
     let status = 'Normal';
     if(avgSla > 60) status = 'Critical'; else if(avgSla >= 45) status = 'Risk';
@@ -398,24 +621,34 @@ function renderFcDetail(rows){
 }
 
 function renderProcessBreakdown(rows){
-  const panel = document.getElementById('processPanel');
-  if(!hasField('step_receive') && !hasField('step_pack') && !hasField('step_wait') && !hasField('step_deliver')){
-    panel.style.display = 'none'; return;
+  const has = hasField('step_receive')||hasField('step_pack')||hasField('step_wait')||hasField('step_deliver');
+  document.getElementById('processPanel').style.display = (has && CFG.visibility.processBreakdown) ? 'block' : 'none';
+  document.getElementById('rootCausePanel').style.display = (has && CFG.visibility.rootCause) ? 'block' : 'none';
+  if(!has) return;
+
+  const mode = CFG.calcMode.stepTimes;
+  const rc = agg(rows,'step_receive',mode), pk = agg(rows,'step_pack',mode), wt = agg(rows,'step_wait',mode), dl = agg(rows,'step_deliver',mode);
+  if(rows.length){
+    renderDonut(document.getElementById('procDonut'), null, [
+      {v:rc,c:'#34d399',l:'รับ'},{v:pk,c:'#3b82f6',l:'จัด'},{v:wt,c:'#f0ad4e',l:'รอส่ง'},{v:dl,c:'#e0525f',l:'ส่ง'}
+    ]);
+  } else {
+    const el = document.getElementById('procDonut'); el.style.background='var(--green-light)'; el.textContent='';
   }
-  panel.style.display = 'block';
+
   const groups = groupBy(rows,'fc');
   const data = [...groups.entries()].map(([fc, rs])=>{
-    const rc = avgOf(rs,'step_receive'), pk = avgOf(rs,'step_pack'), wt = avgOf(rs,'step_wait'), dl = avgOf(rs,'step_deliver');
-    return {fc, rc, pk, wt, dl, total: rc+pk+wt+dl};
+    const rcF=avgOf(rs,'step_receive'), pkF=avgOf(rs,'step_pack'), wtF=avgOf(rs,'step_wait'), dlF=avgOf(rs,'step_deliver');
+    return {fc, rc:rcF, pk:pkF, wt:wtF, dl:dlF, total: rcF+pkF+wtF+dlF};
   });
   document.getElementById('processBody').innerHTML = data.map(d=>
     '<tr><td>'+(d.fc||'-')+'</td><td>'+nf(d.rc)+'</td><td>'+nf(d.pk)+'</td><td>'+nf(d.wt)+'</td><td>'+nf(d.dl)+'</td><td>'+nf(d.total)+'</td></tr>'
-  ).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--muted)">ไม่มีข้อมูล</td></tr>';
+  ).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--muted)">กรุณาเลือก Filter เพื่อแสดงข้อมูล</td></tr>';
 }
 
 function renderHourly(rows){
   const panel = document.getElementById('hourlyPanel');
-  if(!hasField('order_hour')){ panel.style.display = 'none'; return; }
+  if(!hasField('order_hour') || !CFG.visibility.hourlyChart){ panel.style.display = 'none'; return; }
   panel.style.display = 'block';
   const groups = groupBy(rows,'order_hour');
   const data = [...groups.entries()].map(([h, rs])=>{
@@ -427,11 +660,12 @@ function renderHourly(rows){
   document.getElementById('hourlyBody').innerHTML = data.map(d=>
     '<tr><td>'+d.h+'</td><td>'+nf(d.avgSla)+'</td><td>'+nf(d.avgTc)+'</td></tr>'
   ).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--muted)">ไม่มีข้อมูล</td></tr>';
+  renderHourlyChart(rows.length ? data : []);
 }
 
 function renderInsights(rows){
   const el = document.getElementById('insightsList');
-  if(!rows.length){ el.innerHTML = '<li>ยังไม่มีข้อมูลตาม Filter ที่เลือก</li>'; return; }
+  if(!rows.length){ el.innerHTML = '<li>ยังไม่วิเคราะห์ข้อมูล กรุณาเลือก Filter แล้วกด Apply Filter</li>'; return; }
   const items = [];
   const groups = groupBy(rows,'fc');
   let worstSla = null, worstCancel = null;
@@ -457,6 +691,7 @@ const SUPABASE_KEY = 'sb_publishable_we-LE76OhWvNwg2Gd25Ccg_-kpE3Rjq';
 
 async function loadData(manual){
   document.getElementById('updatedAt').textContent = 'กำลังเชื่อมต่อข้อมูล…';
+  document.getElementById('connStatus').textContent = 'กำลังเชื่อมต่อข้อมูลล่าสุด…';
   try{
     const res = await fetch(SUPABASE_URL + '/rest/v1/sla_data?id=eq.1&select=records,updated_at', {
       headers: { apikey: SUPABASE_KEY }
@@ -468,20 +703,23 @@ async function loadData(manual){
     document.getElementById('updatedAt').textContent = ALL.length
       ? 'อัปเดตล่าสุด: ' + new Date(row.updated_at || Date.now()).toLocaleString('th-TH') + ' • ' + ALL.length + ' รายการ'
       : 'ยังไม่มีข้อมูล — อัปโหลดไฟล์ที่หน้า Admin';
+    document.getElementById('connStatus').textContent = ALL.length
+      ? 'เชื่อมต่อข้อมูลล่าสุดแล้ว ' + ALL.length.toLocaleString('en-US') + ' รายการ'
+      : 'ยังไม่มีข้อมูลในระบบ';
     document.getElementById('f_zone').value = '';
     document.getElementById('f_div').value = '';
     document.getElementById('f_wm').value = '';
     document.getElementById('f_fc').value = '';
     document.getElementById('f_organize').value = '';
     document.getElementById('f_date').value = '';
-    document.getElementById('f_store').value = '';
     populateFilters();
     applyFilter();
   }catch(e){
     document.getElementById('updatedAt').textContent = 'โหลดข้อมูลไม่สำเร็จ: ' + e.message;
+    document.getElementById('connStatus').textContent = 'เชื่อมต่อไม่สำเร็จ: ' + e.message;
   }
 }
-loadData();
+loadCfg().then(loadData);
 </script>
 </body>
 </html>
