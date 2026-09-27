@@ -83,6 +83,44 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;padding:10px 0 30px
     </div>
   </div>
 
+  <div class="panel" id="storeDetailPanel" style="display:none">
+    <h2 id="sd_title">Store Detail</h2>
+    <div class="grid7" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">
+      <div class="card"><div class="label">Zone</div><div class="val mono" style="font-size:16px" id="sd_zone">-</div></div>
+      <div class="card"><div class="label">Type</div><div class="val mono" style="font-size:16px" id="sd_type">-</div></div>
+      <div class="card"><div class="label">Profile</div><div class="val mono" style="font-size:16px" id="sd_profile">-</div></div>
+      <div class="card"><div class="label">Sub-profile</div><div class="val mono" style="font-size:16px" id="sd_subprofile">-</div></div>
+    </div>
+    <div class="scroll" style="margin-bottom:14px">
+      <table><thead><tr><th>รายการ</th><th>ยอดขาย (บาท)</th><th>TC รวม</th><th>TA เฉลี่ย</th></tr></thead><tbody id="sd_salesBody"></tbody></table>
+    </div>
+    <div class="grid3" style="margin-bottom:14px">
+      <div class="card warn"><div class="label">% Cancel เฉลี่ย</div><div class="val mono" id="sd_cancelPct">-</div><div class="sub">เป้าหมาย ≤ 1.5%</div></div>
+      <div class="card"><div class="label">TC ยกเลิก</div><div class="val mono" id="sd_cancelTc">-</div></div>
+      <div class="card"><div class="label">ช่วง SLA</div><div class="val mono" style="font-size:16px" id="sd_slaRange">-</div><div class="sub">เป้าหมาย ≤ 45 นาที</div></div>
+    </div>
+    <div id="sd_stepsWrap" style="display:none">
+      <div class="note" style="margin-bottom:8px">SLA และเวลาเฉลี่ยแต่ละขั้นตอน</div>
+      <div class="tiers" id="sd_steps"></div>
+    </div>
+    <div class="grid3" style="margin-top:16px">
+      <div class="card" style="display:flex;flex-direction:column;align-items:center;justify-content:center">
+        <div class="label" style="align-self:flex-start">Process Breakdown</div>
+        <div id="sd_donut" style="width:120px;height:120px;border-radius:50%;margin:10px 0;display:flex;align-items:center;justify-content:center"></div>
+        <div id="sd_donutLegend" style="font-size:11px;color:var(--muted);text-align:center"></div>
+      </div>
+      <div class="card" style="display:flex;flex-direction:column;align-items:center;justify-content:center">
+        <div class="label" style="align-self:flex-start">Capacity Utilization</div>
+        <div id="sd_gauge" style="width:120px;height:120px;border-radius:50%;margin:10px 0;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600"></div>
+        <div class="sub">Within SLA 45 min</div>
+      </div>
+      <div class="card">
+        <div class="label">SLA vs TC รายชั่วโมง</div>
+        <div class="scroll" style="margin-top:8px"><table><thead><tr><th>ชั่วโมง</th><th>SLA</th><th>TC</th></tr></thead><tbody id="sd_hourlyBody"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+
   <div class="panel">
     <h2>Overview</h2>
     <div class="grid3">
@@ -201,6 +239,89 @@ function groupBy(arr,key){
 
 function hasField(key){ return ALL.some(r=> r[key]!==undefined && r[key]!==''); }
 
+function renderStoreDetail(rows){
+  const panel = document.getElementById('storeDetailPanel');
+  const storeIds = distinct(rows,'store');
+  if(storeIds.length !== 1 || !rows.length){ panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  const store = storeIds[0];
+  const name = rows[0].storename || '';
+  document.getElementById('sd_title').textContent = 'Store ID ' + store + (name ? ' · ' + name : '');
+  document.getElementById('sd_zone').textContent = rows[0].zone || '-';
+  document.getElementById('sd_type').textContent = rows[0].storetype || '-';
+  document.getElementById('sd_profile').textContent = rows[0].profile || '-';
+  document.getElementById('sd_subprofile').textContent = rows[0].subprofile || '-';
+
+  const salesStoreN = sum(rows,'sales_store'), tcStoreN = sum(rows,'tc_store');
+  const salesDeliveryN = sum(rows,'sales_delivery'), tcDeliveryN = sum(rows,'tc_delivery');
+  const taStoreN = tcStoreN ? salesStoreN/tcStoreN : 0;
+  const taDeliveryN = tcDeliveryN ? salesDeliveryN/tcDeliveryN : 0;
+  document.getElementById('sd_salesBody').innerHTML =
+    '<tr><td>Store</td><td>'+nf(salesStoreN)+'</td><td>'+nf(tcStoreN)+'</td><td>'+nf(taStoreN)+'</td></tr>' +
+    '<tr><td>Delivery</td><td>'+nf(salesDeliveryN)+'</td><td>'+nf(tcDeliveryN)+'</td><td>'+nf(taDeliveryN)+'</td></tr>';
+
+  const tcAll = tcStoreN + tcDeliveryN;
+  const cancelSum = sum(rows,'cancel');
+  const cancelPct = tcAll ? cancelSum/tcAll*100 : 0;
+  document.getElementById('sd_cancelPct').textContent = nf(cancelPct)+'%';
+  document.getElementById('sd_cancelTc').textContent = nf(cancelSum);
+
+  const slaRs = rows.filter(r=>r.sla_min!=='' && !isNaN(Number(r.sla_min)));
+  const avgSla = slaRs.length ? sum(slaRs,'sla_min')/slaRs.length : 0;
+  document.getElementById('sd_slaRange').textContent = slaRs.length ? (avgSla<=45 ? 'น้อยกว่า 45 นาที' : 'มากกว่า 45 นาที') : '-';
+
+  const stepsWrap = document.getElementById('sd_stepsWrap');
+  const hasSteps = hasField('step_receive')||hasField('step_pack')||hasField('step_wait')||hasField('step_deliver');
+  const donut = document.getElementById('sd_donut');
+  if(hasSteps){
+    stepsWrap.style.display = 'block';
+    const rc=avgOf(rows,'step_receive'), pk=avgOf(rows,'step_pack'), wt=avgOf(rows,'step_wait'), dl=avgOf(rows,'step_deliver');
+    const steps = [
+      {label:'รับ · เป้า ≤ 1 นาที', v:rc, target:1},
+      {label:'จัด · เป้า ≤ 9 นาที', v:pk, target:9},
+      {label:'รอส่ง · เป้า ≤ 15 นาที', v:wt, target:15},
+      {label:'ส่ง · เป้า ≤ 20 นาที', v:dl, target:20},
+    ];
+    document.getElementById('sd_steps').innerHTML = steps.map(s=>{
+      const pct = Math.min(s.v/s.target*100,100);
+      const ok = s.v <= s.target;
+      return '<div class="tier"><div class="t">'+s.label+'</div><div class="n mono">'+nf(s.v)+' นาที</div>'+
+        '<div class="bar"><i style="width:'+pct+'%;background:'+(ok?'var(--green)':'var(--red)')+'"></i></div>'+
+        '<div class="p" style="color:'+(ok?'var(--green)':'var(--red)')+'">'+(ok?'ปกติ':'เกินเป้า')+'</div></div>';
+    }).join('');
+    const total = (rc+pk+wt+dl) || 1;
+    const segs = [{v:rc,c:'#34d399'},{v:pk,c:'#22d3ee'},{v:wt,c:'#f5a623'},{v:dl,c:'#f4506a'}];
+    let acc = 0;
+    const stops = segs.map(s=>{ const start = acc/total*360; acc += s.v; const end = acc/total*360; return s.c+' '+start+'deg '+end+'deg'; }).join(',');
+    donut.style.background = 'conic-gradient('+stops+')';
+    donut.innerHTML = '<div style="background:var(--panel2);width:78px;height:78px;border-radius:50%"></div>';
+    document.getElementById('sd_donutLegend').innerHTML = 'รับ '+nf(rc/total*100)+'% · จัด '+nf(pk/total*100)+'% · รอส่ง '+nf(wt/total*100)+'% · ส่ง '+nf(dl/total*100)+'%';
+  } else {
+    stepsWrap.style.display = 'none';
+    donut.style.background = '#0c1424';
+    donut.innerHTML = '';
+    document.getElementById('sd_donutLegend').textContent = 'ไม่มีข้อมูลเวลารายขั้นตอน';
+  }
+
+  const capPct = slaRs.length ? Math.min(avgSla/45*100,100) : 0;
+  const gauge = document.getElementById('sd_gauge');
+  gauge.style.background = slaRs.length ? 'conic-gradient(var(--cyan) '+(capPct*3.6)+'deg, #0c1424 0deg)' : '#0c1424';
+  gauge.innerHTML = '<div style="background:var(--panel2);width:78px;height:78px;border-radius:50%;display:flex;align-items:center;justify-content:center">'+(slaRs.length?nf(capPct)+'%':'-')+'</div>';
+
+  if(hasField('order_hour')){
+    const groups = groupBy(rows,'order_hour');
+    const data = [...groups.entries()].map(([h,rs])=>{
+      const sr = rs.filter(r=>r.sla_min!=='' && !isNaN(Number(r.sla_min)));
+      const avg = sr.length ? sum(sr,'sla_min')/sr.length : 0;
+      const tc = sum(rs,'tc_store')+sum(rs,'tc_delivery');
+      return {h,avg,tc};
+    }).sort((a,b)=>String(a.h).localeCompare(String(b.h)));
+    document.getElementById('sd_hourlyBody').innerHTML = data.map(d=>'<tr><td>'+d.h+'</td><td>'+nf(d.avg)+'</td><td>'+nf(d.tc)+'</td></tr>').join('') || '<tr><td colspan="3" style="text-align:center;color:var(--muted)">-</td></tr>';
+  } else {
+    document.getElementById('sd_hourlyBody').innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--muted)">ไม่มีข้อมูลชั่วโมง</td></tr>';
+  }
+}
+
 function applyFilter(){
   const f = currentFilterValues();
   const storeQuery = document.getElementById('f_store').value.trim().toLowerCase();
@@ -255,6 +376,7 @@ function applyFilter(){
   renderProcessBreakdown(rows);
   renderHourly(rows);
   renderInsights(rows);
+  renderStoreDetail(rows);
 }
 
 function renderFcDetail(rows){
