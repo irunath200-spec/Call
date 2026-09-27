@@ -72,8 +72,6 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;padding:10px 0 30px
       <div class="field"><label>ฝ่าย</label><select id="f_div"><option value="">All ฝ่าย</option></select></div>
       <div class="field"><label>เขต</label><select id="f_wm"><option value="">All เขต</option></select></div>
       <div class="field"><label>FC</label><select id="f_fc"><option value="">All FC</option></select></div>
-      <div class="field"><label>Organize</label><select id="f_organize"><option value="">All Organize</option></select></div>
-      <div class="field"><label>วันที่</label><select id="f_date"><option value="">All วันที่</option></select></div>
       <div class="field"><label>Store ID</label><input type="text" id="f_store" inputmode="numeric" placeholder="พิมพ์เลขร้าน..."></div>
     </div>
     <div class="actions">
@@ -121,7 +119,7 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;padding:10px 0 30px
     </div>
   </div>
 
-  <div class="panel">
+  <div class="panel" id="overviewPanel">
     <h2>Overview</h2>
     <div class="grid3">
       <div class="card accent"><div class="label">Total Sales</div><div class="val mono" id="k_totalSales">-</div><div class="sub">Store Sales + Delivery Sales</div></div>
@@ -130,7 +128,7 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;padding:10px 0 30px
     </div>
   </div>
 
-  <div class="panel">
+  <div class="panel" id="performancePanel">
     <h2>Performance</h2>
     <div class="grid7">
       <div class="card accent"><div class="label">Sales Store</div><div class="val mono" id="k_salesStore">-</div><div class="sub">ยอดขายหน้าร้าน</div></div>
@@ -144,7 +142,7 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;padding:10px 0 30px
     </div>
   </div>
 
-  <div class="panel">
+  <div class="panel" id="qualityPanel">
     <h2>เงื่อนไขคุณภาพ</h2>
     <div class="grid7" style="grid-template-columns:repeat(2,1fr);margin-bottom:14px">
       <div class="card accent"><div class="label">Average SLA Time</div><div class="val mono" id="k_avgSla">-</div><div class="sub">นาที เฉลี่ยทุกออเดอร์ที่เลือก</div></div>
@@ -157,7 +155,7 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;padding:10px 0 30px
     </div>
   </div>
 
-  <div class="panel">
+  <div class="panel" id="insightsPanel">
     <h2>💡 Executive Insights</h2>
     <ul class="insights" id="insightsList"><li>เลือก Filter แล้วกด Apply Filter เพื่อคำนวณสถานะ SLA</li></ul>
   </div>
@@ -173,7 +171,7 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;padding:10px 0 30px
     <div class="note">มาตรฐาน: รับ ≤ 1 นาที, จัด ≤ 9 นาที, รอส่ง + ส่ง ≤ 35 นาที และรวม ≤ 45 นาที</div>
   </div>
 
-  <div class="panel">
+  <div class="panel" id="fcDetailPanel">
     <h2>FC Performance Detail</h2>
     <div class="scroll"><table><thead><tr><th>Store</th><th>Zone</th><th>Sales</th><th>TC</th><th>SLA (นาที)</th><th>Cancel</th><th>Status</th></tr></thead><tbody id="fcDetailBody"></tbody></table></div>
   </div>
@@ -200,8 +198,6 @@ function currentFilterValues(){
     division: document.getElementById('f_div').value,
     wm: document.getElementById('f_wm').value,
     fc: document.getElementById('f_fc').value,
-    organize: document.getElementById('f_organize').value,
-    order_date: document.getElementById('f_date').value,
   };
 }
 
@@ -218,11 +214,9 @@ function populateFilters(){
   fillSelect('f_div', distinct(rowsMatchingExcept(f,'division'), 'division'));
   fillSelect('f_wm', distinct(rowsMatchingExcept(f,'wm'), 'wm'));
   fillSelect('f_fc', distinct(rowsMatchingExcept(f,'fc'), 'fc'));
-  fillSelect('f_organize', distinct(rowsMatchingExcept(f,'organize'), 'organize'));
-  fillSelect('f_date', distinct(rowsMatchingExcept(f,'order_date'), 'order_date'));
 }
 
-['f_zone','f_div','f_wm','f_fc','f_organize','f_date'].forEach(id=>{
+['f_zone','f_div','f_wm','f_fc'].forEach(id=>{
   document.getElementById(id).addEventListener('change', populateFilters);
 });
 
@@ -377,6 +371,14 @@ function applyFilter(){
   renderHourly(rows);
   renderInsights(rows);
   renderStoreDetail(rows);
+
+  const singleStoreView = document.getElementById('storeDetailPanel').style.display === 'block';
+  ['overviewPanel','performancePanel','qualityPanel','insightsPanel','fcDetailPanel','hourlyPanel','processPanel'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(singleStoreView) el.style.display = 'none';
+    else if(id==='hourlyPanel' || id==='processPanel') { /* leave as set by renderHourly/renderProcessBreakdown */ }
+    else el.style.display = 'block';
+  });
 }
 
 function renderFcDetail(rows){
@@ -473,8 +475,6 @@ async function loadData(manual){
     document.getElementById('f_div').value = '';
     document.getElementById('f_wm').value = '';
     document.getElementById('f_fc').value = '';
-    document.getElementById('f_organize').value = '';
-    document.getElementById('f_date').value = '';
     document.getElementById('f_store').value = '';
     populateFilters();
     applyFilter();
