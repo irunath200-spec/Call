@@ -388,12 +388,13 @@ function renderFcDetail(rows){
     const avgSla = slaRs.length ? sum(slaRs,'sla_min')/slaRs.length : 0;
     const cancelPct = tc ? sum(rs,'cancel')/tc*100 : 0;
     const zone = rs[0]?.zone || '';
+    const name = rs[0]?.storename || '';
     let status = 'Normal';
     if(avgSla > 60) status = 'Critical'; else if(avgSla >= 45) status = 'Risk';
-    return {store, zone, sales, tc, avgSla, cancelPct, status};
+    return {store, name, zone, sales, tc, avgSla, cancelPct, status};
   }).sort((a,b)=>b.sales-a.sales).slice(0,30);
   document.getElementById('fcDetailBody').innerHTML = data.map(d=>
-    '<tr><td>'+(d.store||'-')+'</td><td>'+(d.zone||'-')+'</td><td>'+nf(d.sales)+'</td><td>'+nf(d.tc)+'</td><td>'+nf(d.avgSla)+'</td><td>'+nf(d.cancelPct)+'%</td><td>'+d.status+'</td></tr>'
+    '<tr><td>'+(d.store||'-')+(d.name?' · '+d.name:'')+'</td><td>'+(d.zone||'-')+'</td><td>'+nf(d.sales)+'</td><td>'+nf(d.tc)+'</td><td>'+nf(d.avgSla)+'</td><td>'+nf(d.cancelPct)+'%</td><td>'+d.status+'</td></tr>'
   ).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--muted)">ไม่มีข้อมูล</td></tr>';
 }
 
