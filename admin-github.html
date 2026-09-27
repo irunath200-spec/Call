@@ -9,60 +9,166 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{
-  --bg:#0a0f1c; --panel:#111a2e; --panel2:#0e1526; --line:rgba(255,255,255,.08);
-  --text:#e7edf7; --muted:#8b98b8; --cyan:#22d3ee; --amber:#f5a623; --red:#f4506a; --green:#34d399;
+  --bg:#eef6f0; --panel:#ffffff; --panel2:#f7fbf8; --line:#dde8e0;
+  --text:#17241c; --muted:#6d7d73; --green:#2f7d52; --green-dark:#1f6b4a; --green-light:#eaf4ec;
+  --amber:#e8a33d; --red:#e0525f; --pink-bg:#fbe4e6; --badge-bg:#3a3f3c;
   box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
 *{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;background:var(--bg);color:var(--text);font-family:'Prompt',sans-serif;min-height:100%}
 .mono{font-family:'IBM Plex Mono',monospace}
-header{padding:22px 20px 16px;border-bottom:1px solid var(--line);padding-top:calc(22px + env(safe-area-inset-top,0px))}
-header h1{margin:0;font-size:19px;display:flex;align-items:center;gap:10px}
-header h1 .dot{width:9px;height:9px;border-radius:50%;background:var(--amber);box-shadow:0 0 10px var(--amber)}
+header{padding:20px 20px 14px;border-bottom:1px solid var(--line);padding-top:calc(20px + env(safe-area-inset-top,0px))}
+.headerRow{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+header h1{margin:0;font-size:19px;display:flex;align-items:center;gap:10px;font-weight:700}
+header h1 .dot{width:9px;height:9px;border-radius:50%;background:var(--amber);box-shadow:0 0 8px var(--amber)}
 header .sub{color:var(--muted);font-size:12.5px;margin-top:4px}
-main{max-width:920px;margin:0 auto;padding:18px 16px 60px}
-.panel{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}
-.panel h2{font-size:13px;margin:0 0 12px;color:var(--muted);font-weight:600}
-.drop{border:1.5px dashed var(--line);border-radius:12px;padding:28px;text-align:center;color:var(--muted);font-size:13.5px;cursor:pointer}
-.drop:hover{border-color:var(--cyan);color:var(--text)}
-input[type=file]{display:none}
-.status{margin-top:12px;font-size:12.5px;color:var(--muted)}
-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:10px}
-th,td{border:1px solid var(--line);padding:6px 8px;text-align:left}
-th{color:var(--muted);font-weight:500}
+.slaBadge{background:var(--badge-bg);color:#fff;font-size:12px;font-weight:600;padding:8px 14px;border-radius:8px;white-space:nowrap}
+main{max-width:1180px;margin:0 auto;padding:18px 16px 60px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 1px 2px rgba(20,40,25,.04)}
+.panel h2{font-size:14px;margin:0 0 12px;color:var(--text);font-weight:700}
+.panel h3{font-size:12.5px;margin:16px 0 8px;color:var(--text);font-weight:700}
+.connStatus{font-size:12.5px;color:var(--muted);padding:12px 16px}
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.field label{display:block;font-size:11.5px;color:var(--muted);margin-bottom:5px;font-weight:600}
+select,input[type=text],input[type=file]{width:100%;background:#fff;border:1px solid var(--line);color:var(--text);padding:9px 10px;border-radius:8px;font-family:inherit;font-size:13.5px}
+input[type=file]{padding:7px}
+.actions{display:flex;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap}
+button.primary{background:var(--green);color:#fff;border:none;padding:10px 20px;border-radius:8px;font-weight:600;font-size:13.5px;cursor:pointer}
+button.primary:hover{background:var(--green-dark)}
+button.primary:disabled{opacity:.45;cursor:not-allowed}
+button.ghost{background:#fff;border:1px solid var(--green);color:var(--green-dark);padding:10px 16px;border-radius:8px;font-size:13px;cursor:pointer;font-weight:600}
+.count{color:var(--muted);font-size:12.5px;margin-left:auto}
+.count b{color:var(--green-dark)}
+.note,.status{font-size:11.5px;color:var(--muted);margin-top:8px}
+.kpiRow{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+.card .label{font-size:12px;color:var(--muted);font-weight:600}
+.card .val{font-size:21px;font-weight:700;margin-top:8px}
+.card .sub{font-size:11px;color:var(--muted);margin-top:4px}
+.card.warn .val{color:var(--red)}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:700px){.grid3{grid-template-columns:1fr}}
+.grid7{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media(max-width:900px){.grid7{grid-template-columns:repeat(2,1fr)}}
+.tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:700px){.tiers{grid-template-columns:1fr}}
+.tier{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--panel2)}
+.tier .t{font-size:12px;color:var(--muted);font-weight:600}
+.tier .n{font-size:22px;font-weight:700;margin-top:4px}
+.bar{height:6px;border-radius:4px;background:var(--green-light);margin-top:10px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--green)}
+.alertBox{border-left:4px solid var(--green);background:var(--green-light);font-size:13px;padding:14px 16px}
 .scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:4px}
+th,td{border:1px solid var(--line);padding:7px 9px;text-align:left}
+th{color:var(--muted);font-weight:600;background:var(--green-light)}
+table.greenHead th{background:var(--green-dark);color:#fff;font-weight:700}
+ul.insights{margin:0;padding-left:18px;font-size:13px;line-height:1.9}
+.badge{display:inline-block;background:var(--pink-bg);color:var(--red);font-size:12px;font-weight:700;padding:5px 12px;border-radius:20px}
+.badgeCyan{display:inline-block;background:var(--green-light);border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:11px;color:var(--green-dark);margin-left:6px}
+.panelHead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.chartsGrid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:900px){.chartsGrid{grid-template-columns:1fr}}
+.gauge,.donut{width:150px;height:150px;border-radius:50%;margin:14px auto 6px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700}
+.gaugeWrap,.donutWrap{display:flex;flex-direction:column;align-items:center;text-align:center}
+.legendRow{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;font-size:12px;color:var(--muted);margin-top:6px}
+.legendRow span{display:inline-flex;align-items:center;gap:5px}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.axisMuted{fill:var(--muted);font-size:10px;font-family:'Prompt',sans-serif}
+
+.drop{border:1.5px dashed var(--line);border-radius:12px;padding:24px;text-align:center;color:var(--muted);font-size:13.5px;cursor:pointer;background:var(--panel2)}
+.drop:hover{border-color:var(--green)}
 .map{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
 @media(max-width:600px){.map{grid-template-columns:1fr}}
 .map .row{display:flex;align-items:center;gap:8px;font-size:12.5px}
 .map .row span{width:150px;color:var(--muted)}
-select{flex:1;background:#0c1424;border:1px solid var(--line);color:var(--text);padding:7px 9px;border-radius:8px;font-family:inherit;font-size:12.5px}
-button.primary{background:var(--cyan);color:#04222b;border:none;padding:11px 20px;border-radius:8px;font-weight:600;font-size:13.5px;cursor:pointer;margin-top:14px}
-button.primary:disabled{opacity:.4;cursor:not-allowed}
-.ok{color:var(--green)} .err{color:var(--red)}
-.badge{display:inline-block;background:#0c1424;border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:11px;color:var(--cyan);margin-left:6px}
-a.link{color:var(--cyan);text-decoration:none;font-size:12.5px}
+.ok{color:#1f9d6b} .err{color:var(--red)}
+a.link{color:var(--green-dark);text-decoration:none;font-size:12.5px;font-weight:600}
 .hint{margin-top:14px;font-size:11.5px;color:var(--muted)}
+
+.cfgGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px 16px;margin-bottom:14px}
+.cfgGrid label{display:flex;align-items:center;gap:8px;font-size:12.5px}
+.cfgGrid input[type=checkbox]{width:16px;height:16px;accent-color:var(--green)}
+.calcGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.calcGrid .item{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);font-weight:600}
+.calcGrid select{padding:7px 8px;font-size:12.5px}
+.labelGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:14px}
+.labelGrid .item{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);font-weight:600}
+.labelGrid input{padding:7px 9px;font-size:12.5px}
+details.cfgSection{border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-bottom:10px;background:var(--panel2)}
+details.cfgSection summary{cursor:pointer;font-weight:700;font-size:13px}
 </style>
 </head>
 <body>
 <header>
-  <h1><span class="dot"></span>SLA Command Center — Admin</h1>
-  <div class="sub">อัปโหลดไฟล์ Excel (.xlsx) หรือ CSV เพื่ออัปเดต Dashboard <a class="link" href="#" onclick="location.reload()">↻ รีเฟรช</a></div>
+  <div class="headerRow">
+    <h1><span class="dot"></span><span id="titleText">🚚 SLA DELIVERY COMMAND CENTER</span> — Admin</h1>
+    <div class="slaBadge" id="slaBadge">สถานะ SLA: —</div>
+  </div>
+  <div class="sub" id="updatedAt">กำลังโหลดข้อมูล…</div>
 </header>
 <main>
+  <div class="panel connStatus" id="connStatus">กำลังเชื่อมต่อข้อมูลล่าสุด…</div>
+
   <div class="panel">
-    <h2>1. เลือกไฟล์</h2>
+    <h2>Filters</h2>
+    <div class="filters">
+      <div class="field"><label id="lbl_zone">Zone</label><select id="f_zone"><option value="">เลือก Zone</option></select></div>
+      <div class="field"><label id="lbl_div">ฝ่าย</label><select id="f_div"><option value="">All ฝ่าย</option></select></div>
+      <div class="field"><label id="lbl_wm">เขต</label><select id="f_wm"><option value="">All เขต</option></select></div>
+      <div class="field"><label id="lbl_fc">FC</label><select id="f_fc"><option value="">All FC</option></select></div>
+      <div class="field"><label id="lbl_organize">Organize</label><select id="f_organize"><option value="">All Organize</option></select></div>
+      <div class="field"><label id="lbl_store">Store ID</label><input type="text" id="f_store" inputmode="numeric" placeholder="ค้นหา Store ID (ตัวเลข)"></div>
+      <div class="field"><label id="lbl_date">วันที่</label><select id="f_date"><option value="">All วันที่</option></select></div>
+    </div>
+    <div class="actions">
+      <button class="primary" id="applyBtn" onclick="applyFilter()">Apply Filter</button>
+      <button class="ghost" onclick="loadData(true)">รีเฟรชฟิลเตอร์</button>
+      <span class="count">จำนวนรายการที่เลือก <b id="rowCount">0</b> แถว</span>
+    </div>
+  </div>
+
+  <div class="kpiRow" id="kpiRow">
+    <div class="card" id="kc_totalSales"><div class="label">Total Sales</div><div class="val mono" id="k_totalSales">-</div><div class="sub">Store Sales + Delivery Sales</div></div>
+    <div class="card" id="kc_storeAvg"><div class="label">Store/Average</div><div class="val mono" id="k_storeAvg">-</div><div class="sub">เฉลี่ยจากร้านที่เลือก</div></div>
+    <div class="card" id="kc_deliverySales"><div class="label">Delivery Sales /Average</div><div class="val mono" id="k_deliverySales2">-</div><div class="sub">เฉลี่ยจากร้านที่เลือก</div></div>
+    <div class="card" id="kc_avgSla"><div class="label">Average SLA Time</div><div class="val mono" id="k_avgSla">-</div><div class="sub">นาที เฉลี่ยทุกออเดอร์ที่เลือก</div></div>
+    <div class="card" id="kc_cancel"><div class="label">Cancel Rate</div><div class="val mono" id="k_cancel">-</div><div class="sub">TC Cancel / TC Delivery</div></div>
+    <div class="card" id="kc_capacity"><div class="label">Capacity Utilization</div><div class="val mono" id="k_capacity">-</div><div class="sub">เวลาเฉลี่ยเทียบเป้าหมาย 45 นาที</div></div>
+    <div class="card" id="kc_callLate"><div class="label">Call · จัดส่งล่าช้า</div><div class="val mono" id="k_callLate">-</div><div class="sub">จำนวนตาม Filter ที่เลือก</div></div>
+  </div>
+
+  <div class="panel" id="trendPanel">
+    <div class="panelHead">
+      <div><h2 style="margin-bottom:2px">ร้าน SLA เฉลี่ยเกิน 45 นาทีต่อเนื่อง 2 เดือน</h2>
+        <div class="note" style="margin:0">เทียบค่าเฉลี่ยรายเดือนตาม Filter ที่เลือก โดยใช้ข้อมูลครบทั้งเดือน</div></div>
+      <span class="badge" id="trendBadge">— ร้าน</span>
+    </div>
+    <div class="scroll"><table><thead><tr><th>Store ID</th><th>ชื่อร้าน</th><th>เดือนก่อน · SLA เฉลี่ย</th><th>เดือนล่าสุด · SLA เฉลี่ย</th><th>แนวโน้ม</th></tr></thead><tbody id="trendBody"><tr><td colspan="5" style="text-align:center;color:var(--muted)">เลือก Filter แล้วกด Apply Filter เพื่อคำนวณ</td></tr></tbody></table></div>
+  </div>
+
+  <div class="panel alertBox" id="alertBox">ยังไม่คำนวณ กรุณาเลือก Filter แล้วกด Apply Filter</div>
+
+  <!-- ==================== UPLOAD ==================== -->
+  <div class="panel">
+    <h2>1. เลือกไฟล์ — Upload SLA Data (Excel / CSV)</h2>
     <div class="drop" id="drop" onclick="document.getElementById('file').click()">
       คลิกเพื่อเลือกไฟล์ .xlsx / .xls / .csv<br>
       <span style="font-size:11.5px">คอลัมน์หลัก (จำเป็น): Zone, ฝ่าย, เขต, FC, Store ID, Sales Store, Sales Delivery, TC Store, TC Delivery, SLA (min), Cancel</span><br>
-      <span style="font-size:11.5px;color:var(--muted)">คอลัมน์เสริม (ไม่บังคับ): Organize, วันที่, ชั่วโมง, BPSD, TA, เวลารับ/จัด/รอส่ง/ส่ง</span>
+      <span style="font-size:11.5px;color:var(--muted)">คอลัมน์เสริม (ไม่บังคับ): Organize, วันที่, ชั่วโมง, BPSD, TA, Call·จัดส่งล่าช้า, เวลารับ/จัด/รอส่ง/ส่ง</span>
     </div>
     <input type="file" id="file" accept=".xlsx,.xls,.csv">
     <div class="status" id="fileStatus"></div>
+    <div class="filters" style="margin-top:14px;grid-template-columns:1fr 1fr">
+      <div class="field"><label>Filter by Organize</label><select id="uploadOrganize"><option value="">All Organize</option></select></div>
+      <div style="align-self:end"><button class="primary" id="saveBtn" onclick="saveData()" style="width:100%">บันทึกข้อมูลและอัปเดต Dashboard</button></div>
+    </div>
+    <div class="status" id="saveStatus"></div>
   </div>
 
   <div class="panel" id="mapPanel" style="display:none">
-    <h2>2. จับคู่คอลัมน์อัตโนมัติ <span class="badge" id="rowsFound"></span></h2>
+    <h2>2. จับคู่คอลัมน์อัตโนมัติ <span class="badgeCyan" id="rowsFound"></span></h2>
     <div class="map" id="mapGrid"></div>
     <div class="status" id="mapWarning"></div>
     <div class="hint">ฟิลด์เสริม (ไม่บังคับ — มีก็แสดงผลเพิ่มเติมในหน้า Dashboard เช่น Process Breakdown, SLA รายชั่วโมง):</div>
@@ -70,8 +176,92 @@ a.link{color:var(--cyan);text-decoration:none;font-size:12.5px}
     <a class="link" href="#" id="toggleManual" onclick="toggleManual(event)" style="display:inline-block;margin-top:12px">แก้ไขการจับคู่ด้วยตัวเอง</a>
     <div id="manualGrid" class="map" style="display:none;margin-top:10px"></div>
     <div class="scroll"><table id="preview"></table></div>
-    <button class="primary" id="saveBtn" onclick="saveData()">บันทึกข้อมูลและอัปเดต Dashboard</button>
-    <div class="status" id="saveStatus"></div>
+  </div>
+
+  <div class="panel">
+    <h2>ตรวจไฟล์ก่อนเผยแพร่</h2>
+    <div class="note" style="margin-top:0">เลือกไฟล์ Excel หรือ CSV เพื่อดูคอลัมน์ที่พบ</div>
+    <button class="ghost" style="margin-top:10px" onclick="document.getElementById('file').click()">ดูตัวอย่างรายงานร้านจากไฟล์ที่เลือก</button>
+  </div>
+
+  <!-- ==================== SETTINGS ==================== -->
+  <div class="panel">
+    <div class="panelHead">
+      <div><h2 style="margin-bottom:2px">ตั้งค่าข้อความหน้าเว็บ</h2>
+        <div class="note" style="margin:0">แก้ข้อความแล้วกดบันทึก หน้าคนดูจะใช้ข้อความใหม่โดยอัตโนมัติ</div></div>
+      <button class="primary" onclick="saveCfg()">บันทึกข้อความและคอลัมน์</button>
+    </div>
+
+    <h3>เลือกคอลัมน์ที่แสดงหน้าเว็บ</h3>
+    <div class="note" style="margin-top:0">เอาเครื่องหมายถูกออกเพื่อซ่อนหัวข้อนั้นจากหน้าคนดู การคำนวณยังใช้ข้อมูลครบทุกคอลัมน์</div>
+    <div class="cfgGrid" id="visGrid"></div>
+
+    <h3>วิธีคำนวณตัวเลขในรายงาน</h3>
+    <div class="note" style="margin-top:0">เลือก AVG เพื่อดูค่าเฉลี่ยตามข้อมูลที่ผ่าน Filter หรือ SUM เพื่อดูผลรวมของข้อมูลชุดนั้น</div>
+    <div class="calcGrid" id="calcGrid"></div>
+
+    <details class="cfgSection">
+      <summary>ส่วนหัวและ Filter</summary>
+      <div class="labelGrid" id="labelGrid" style="margin-top:12px"></div>
+    </details>
+    <details class="cfgSection"><summary>KPI</summary><div class="note" style="margin-top:8px">ปรับการแสดงผล KPI ได้ที่หัวข้อ "เลือกคอลัมน์ที่แสดงหน้าเว็บ" ด้านบน</div></details>
+    <details class="cfgSection"><summary>หัวข้อกราฟและบทวิเคราะห์</summary><div class="note" style="margin-top:8px">ควบคุมการแสดง/ซ่อนกราฟ SLA รายชั่วโมง, Process Breakdown, Root Cause Heatmap และ Executive Insights ได้ที่หัวข้อ "เลือกคอลัมน์ที่แสดงหน้าเว็บ" ด้านบน</div></details>
+    <details class="cfgSection"><summary>หัวตารางรายละเอียด</summary><div class="note" style="margin-top:8px">ควบคุมการแสดง/ซ่อนตาราง FC Performance Detail และตารางแนวโน้ม SLA ได้ที่หัวข้อ "เลือกคอลัมน์ที่แสดงหน้าเว็บ" ด้านบน</div></details>
+    <details class="cfgSection"><summary>หน้าอัปโหลดข้อมูล</summary><div class="note" style="margin-top:8px">คอลัมน์หลัก/เสริมของหน้าอัปโหลดถูกกำหนดในโค้ด แก้ไขได้จากไฟล์นี้โดยตรง</div></details>
+
+    <div class="status" id="cfgSaveStatus"></div>
+  </div>
+
+  <div class="panel" id="tiersPanel">
+    <h2>เงื่อนไขคุณภาพ</h2>
+    <div class="tiers">
+      <div class="tier"><div class="t">SLA &lt; 45 min</div><div class="n mono" id="t1n">-</div><div class="p mono" id="t1p">-</div><div class="bar"><i id="t1b" style="width:0%"></i></div></div>
+      <div class="tier"><div class="t">SLA 45–60 min</div><div class="n mono" id="t2n">-</div><div class="p mono" id="t2p">-</div><div class="bar"><i id="t2b" style="width:0%;background:var(--amber)"></i></div></div>
+      <div class="tier"><div class="t">SLA &gt; 60 min</div><div class="n mono" id="t3n">-</div><div class="p mono" id="t3p">-</div><div class="bar"><i id="t3b" style="width:0%;background:var(--red)"></i></div></div>
+    </div>
+  </div>
+
+  <div class="chartsGrid">
+    <div class="panel" id="hourlyPanel">
+      <h2>SLA vs TC รายชั่วโมง</h2>
+      <div id="hourlyChartWrap"></div>
+      <div class="note" id="hourlyEmptyNote">เลือก Filter เพื่อแสดงข้อมูลรายชั่วโมง</div>
+      <details style="margin-top:8px"><summary style="cursor:pointer;font-size:12.5px;color:var(--muted)">ดูตัวเลขของแต่ละชั่วโมง</summary>
+        <div class="scroll"><table><thead><tr><th>ช่วงเวลา</th><th>SLA เฉลี่ย (นาที)</th><th>TC เฉลี่ย</th></tr></thead><tbody id="hourlyBody"></tbody></table></div>
+      </details>
+    </div>
+    <div class="panel" id="capacityPanel">
+      <h2>Capacity Utilization</h2>
+      <div class="gaugeWrap"><div id="capGauge" class="gauge">-</div><div class="sub" id="capGaugeNote">Waiting for Filter</div></div>
+    </div>
+  </div>
+
+  <div class="chartsGrid">
+    <div class="panel" id="processPanel">
+      <h2>Process Breakdown</h2>
+      <div class="donutWrap"><div id="procDonut" class="donut"></div></div>
+      <div class="legendRow">
+        <span><i class="dot" style="background:#34d399"></i>รับ</span>
+        <span><i class="dot" style="background:#3b82f6"></i>จัด</span>
+        <span><i class="dot" style="background:#f0ad4e"></i>รอส่ง</span>
+        <span><i class="dot" style="background:#e0525f"></i>ส่ง</span>
+      </div>
+    </div>
+    <div class="panel" id="rootCausePanel">
+      <h2>Root Cause Heatmap</h2>
+      <div class="scroll"><table><thead><tr><th>FC</th><th>รับ</th><th>จัด</th><th>รอส่ง</th><th>ส่ง</th><th>รวม</th></tr></thead><tbody id="processBody"></tbody></table></div>
+      <div class="note">มาตรฐาน: รับ ≤ 1 นาที, จัด ≤ 9 นาที, รอส่ง + ส่ง ≤ 35 นาที และรวม ≤ 45 นาที</div>
+    </div>
+  </div>
+
+  <div class="panel" id="insightsPanel">
+    <h2>💡 Executive Insights</h2>
+    <ul class="insights" id="insightsList"><li>เลือก Filter แล้วกด Apply Filter เพื่อคำนวณสถานะ SLA</li></ul>
+  </div>
+
+  <div class="panel" id="fcDetailPanel">
+    <h2>FC Performance Detail</h2>
+    <div class="scroll"><table class="greenHead"><thead><tr><th>Store</th><th>Zone</th><th>Sales</th><th>TC</th><th>SLA (นาที)</th><th>Cancel</th><th>Status</th></tr></thead><tbody id="fcDetailBody"></tbody></table></div>
   </div>
 
   <div class="panel">
@@ -80,7 +270,7 @@ a.link{color:var(--cyan);text-decoration:none;font-size:12.5px}
   </div>
 </main>
 <script>
-// อิงหมวดตรงจากหน้า Dashboard: https://irunath200-spec.github.io/Call/
+// อิงหมวดตรงจากหน้า Dashboard
 const FIELD_DEFS = [
   {key:'zone', label:'Zone', aliases:['zone','โซน'], required:true},
   {key:'division', label:'ฝ่าย', aliases:['ฝ่าย','ฝาย','division','dept','แผนก'], required:true},
@@ -98,6 +288,7 @@ const FIELD_DEFS = [
   {key:'order_hour', label:'ชั่วโมง/เวลาออเดอร์', aliases:['hour','เวลา','ชั่วโมง','time','order time'], required:false},
   {key:'bpsd', label:'BPSD', aliases:['bpsd'], required:false},
   {key:'ta', label:'TA (ตะกร้าเฉลี่ย)', aliases:['ta','ตะกร้าเฉลี่ย','average basket'], required:false},
+  {key:'call_late', label:'Call · จัดส่งล่าช้า', aliases:['call','call late','เรียกร้อง','ร้องเรียนล่าช้า','จัดส่งล่าช้า'], required:false},
   {key:'step_receive', label:'เวลารับออเดอร์ (นาที)', aliases:['เวลารับ','รับออเดอร์','received','accept'], required:false},
   {key:'step_pack', label:'เวลาจัดสินค้า (นาที)', aliases:['เวลาจัด','จัดสินค้า','pack'], required:false},
   {key:'step_wait', label:'เวลารอส่ง (นาที)', aliases:['รอส่ง','รอจัดส่ง','wait'], required:false},
@@ -107,7 +298,7 @@ const FIELD_DEFS = [
   {key:'profile', label:'Profile', aliases:['profile','โปรไฟล์'], required:false},
   {key:'subprofile', label:'Sub-profile', aliases:['sub-profile','subprofile','sub profile'], required:false},
 ];
-let headers = [], rows = [], autoMap = {};
+let headers = [], uploadRows = [], autoMap = {};
 
 document.getElementById('file').addEventListener('change', e=>{
   const f = e.target.files[0];
@@ -123,12 +314,12 @@ document.getElementById('file').addEventListener('change', e=>{
       const json = XLSX.utils.sheet_to_json(ws, {defval:''});
       if(!json.length){ document.getElementById('fileStatus').innerHTML = '<span class="err">ไม่พบข้อมูลในไฟล์</span>'; return; }
       headers = Object.keys(json[0]).map(h => h.toString().normalize('NFC').trim());
-      rows = json.map(r=>{
+      uploadRows = json.map(r=>{
         const clean = {};
         Object.keys(r).forEach((k,i)=>{ clean[headers[i]] = r[k]; });
         return clean;
       });
-      document.getElementById('fileStatus').innerHTML = '<span class="ok">อ่านไฟล์สำเร็จ</span> พบ ' + rows.length + ' แถว, ' + headers.length + ' คอลัมน์';
+      document.getElementById('fileStatus').innerHTML = '<span class="ok">อ่านไฟล์สำเร็จ</span> พบ ' + uploadRows.length + ' แถว, ' + headers.length + ' คอลัมน์';
       buildMapUI();
     }catch(err){
       document.getElementById('fileStatus').innerHTML = '<span class="err">อ่านไฟล์ไม่สำเร็จ: '+err.message+'</span>';
@@ -137,7 +328,6 @@ document.getElementById('file').addEventListener('change', e=>{
   reader.readAsArrayBuffer(f);
 });
 
-// ไฟล์ CSV ที่ Excel เวอร์ชันไทยเซฟไว้ มักไม่ได้เป็น UTF-8 แต่เป็น Windows-874 (ANSI ไทย)
 function readCsvSmart(bytes){
   if(bytes[0]===0xEF && bytes[1]===0xBB && bytes[2]===0xBF){
     return XLSX.read(bytes, {type:'array'});
@@ -170,14 +360,14 @@ function guessColumnFuzzy(aliases, usedCols){
 
 function mapRow(fd, found){
   const row = document.createElement('div'); row.className='row';
-  row.innerHTML = '<span>'+fd.label+(fd.required?'':' <i style="color:var(--muted);font-weight:400">(ไม่บังคับ)</i>')+'</span><span style="flex:1;color:'+(found?'var(--green)':'var(--muted)')+'">'+
+  row.innerHTML = '<span>'+fd.label+(fd.required?'':' <i style="color:var(--muted);font-weight:400">(ไม่บังคับ)</i>')+'</span><span style="flex:1;color:'+(found?'#1f9d6b':'var(--muted)')+'">'+
     (found ? '✓ '+found : '— ไม่พบคอลัมน์ที่ตรงกัน —') + '</span>';
   return row;
 }
 
 function buildMapUI(){
   document.getElementById('mapPanel').style.display = 'block';
-  document.getElementById('rowsFound').textContent = rows.length + ' แถวข้อมูล';
+  document.getElementById('rowsFound').textContent = uploadRows.length + ' แถวข้อมูล';
   autoMap = {};
   const used = new Set();
   FIELD_DEFS.forEach(fd=>{ const c = guessColumnExact(fd.aliases); if(c){ autoMap[fd.key]=c; used.add(c);} });
@@ -198,7 +388,11 @@ function buildMapUI(){
     : '<span class="ok">✓ จับคู่ครบทุกหมวดที่จำเป็นอัตโนมัติ</span>';
 
   buildManualGrid();
-  renderPreview();
+  renderUploadPreview();
+
+  const organizeVals = [...new Set(uploadRows.map(r=>autoMap.organize ? r[autoMap.organize] : '').filter(Boolean))].sort();
+  const sel = document.getElementById('uploadOrganize');
+  sel.innerHTML = '<option value="">All Organize</option>' + organizeVals.map(v=>'<option value="'+v+'">'+v+'</option>').join('');
 }
 
 function buildManualGrid(){
@@ -221,9 +415,9 @@ function toggleManual(ev){
   document.getElementById('toggleManual').textContent = show ? 'ใช้การจับคู่อัตโนมัติแทน' : 'แก้ไขการจับคู่ด้วยตัวเอง';
 }
 
-function renderPreview(){
+function renderUploadPreview(){
   const t = document.getElementById('preview');
-  const sample = rows.slice(0,5);
+  const sample = uploadRows.slice(0,5);
   let html = '<tr>' + headers.map(h=>'<th>'+h+'</th>').join('') + '</tr>';
   sample.forEach(r=>{ html += '<tr>' + headers.map(h=>'<td>'+r[h]+'</td>').join('') + '</tr>'; });
   t.innerHTML = html;
@@ -246,6 +440,7 @@ async function describeError(res){
 }
 
 async function saveData(){
+  if(!uploadRows.length){ document.getElementById('saveStatus').innerHTML = '<span class="err">กรุณาเลือกไฟล์ก่อน</span>'; return; }
   const btn = document.getElementById('saveBtn');
   btn.disabled = true; btn.textContent = 'กำลังบันทึก…';
   const manualVisible = document.getElementById('manualGrid').style.display !== 'none';
@@ -253,7 +448,12 @@ async function saveData(){
   FIELD_DEFS.forEach(fd => mapping[fd.key] = manualVisible
     ? document.getElementById('map_'+fd.key).value
     : autoMap[fd.key]);
-  const records = rows.map(r=>{
+  const organizeFilter = document.getElementById('uploadOrganize').value;
+  let sourceRows = uploadRows;
+  if(organizeFilter && mapping.organize){
+    sourceRows = sourceRows.filter(r => String(r[mapping.organize]) === organizeFilter);
+  }
+  const records = sourceRows.map(r=>{
     const rec = {};
     FIELD_DEFS.forEach(fd=>{
       const col = mapping[fd.key];
@@ -270,6 +470,7 @@ async function saveData(){
     if(!res.ok) throw new Error(await describeError(res));
     document.getElementById('saveStatus').innerHTML = '<span class="ok">บันทึกสำเร็จ</span> อัปเดต '+records.length+' รายการ — หน้า Dashboard จะแสดงข้อมูลใหม่เมื่อรีเฟรช';
     checkCurrent();
+    loadData();
   }catch(err){
     document.getElementById('saveStatus').innerHTML = '<span class="err">บันทึกไม่สำเร็จ: '+err.message+'</span>';
   }
@@ -292,6 +493,494 @@ async function checkCurrent(){
   }catch(e){ document.getElementById('currentStatus').textContent = 'ตรวจสอบไม่สำเร็จ: ' + e.message; }
 }
 checkCurrent();
+
+/* =========================================================================
+   ด้านล่างนี้คือโค้ด "พรีวิว Dashboard" เดียวกับหน้า index.html
+   ใช้ข้อมูลจาก Supabase (sla_data) และ config (sla_config) ชุดเดียวกัน
+   ========================================================================= */
+let ALL = [];
+
+const DEFAULT_CFG = {
+  title: '🚚 SLA DELIVERY COMMAND CENTER',
+  slaBadgeLabel: 'สถานะ SLA',
+  filterLabels: {zone:'Zone', division:'ฝ่าย', wm:'เขต', fc:'FC', store:'Store ID', date:'วันที่'},
+  applyLabel: 'Apply Filter',
+  visibility: {
+    totalSales:true, storeAvg:true, deliverySales:true, avgSla:true, cancelRate:true, capacity:true, callLate:true,
+    trendTable:true, tiers:true, hourlyChart:true, capacityGauge:true, processBreakdown:true, rootCause:true, insights:true, fcDetail:true
+  },
+  calcMode: { tc:'sum', ta:'avg', pctSales:'avg', cancelPct:'avg', stepTimes:'avg', fcDetail:'avg' }
+};
+let CFG = JSON.parse(JSON.stringify(DEFAULT_CFG));
+
+const VIS_FIELDS = [
+  {group:'การ์ดภาพรวม', items:[
+    ['totalSales','Total Sales'],['storeAvg','Store/Average'],['deliverySales','Delivery Sales'],['avgSla','Average SLA'],
+    ['cancelRate','Cancel Rate'],['capacity','Capacity'],['callLate','Call · จัดส่งล่าช้า'],['trendTable','ร้าน SLA >45 นาทีต่อเนื่อง 2 เดือน']
+  ]},
+  {group:'กราฟและตารางวิเคราะห์', items:[
+    ['tiers','เงื่อนไขคุณภาพ'],['hourlyChart','SLA vs TC รายชั่วโมง'],['capacityGauge','Capacity gauge'],
+    ['processBreakdown','Process Breakdown'],['rootCause','Root Cause Heatmap'],['insights','Executive Insights'],['fcDetail','FC Performance Detail']
+  ]}
+];
+const CALC_FIELDS = [
+  ['tc','TC'], ['ta','TA'], ['pctSales','% Of Sales'], ['cancelPct','% Cancel'], ['stepTimes','เวลาแต่ละขั้นตอน'], ['fcDetail','FC Detail']
+];
+const LABEL_FIELDS = [
+  ['title','ชื่อหน้าเว็บ'], ['slaBadgeLabel','ข้อความป้ายสถานะ SLA ด้านบน'], ['applyLabel','ข้อความปุ่ม Apply'],
+  ['filterLabels.zone','ชื่อ Filter: Zone'], ['filterLabels.store','ชื่อ Filter: Store ID'], ['filterLabels.division','ชื่อ Filter: ฝ่าย'],
+  ['filterLabels.wm','ชื่อ Filter: เขต'], ['filterLabels.fc','ชื่อ Filter: FC'], ['filterLabels.date','ชื่อ Filter: วันที่']
+];
+
+function getPath(obj, path){ return path.split('.').reduce((o,k)=>o && o[k], obj); }
+function setPath(obj, path, val){ const parts = path.split('.'); let o = obj; for(let i=0;i<parts.length-1;i++) o = o[parts[i]]; o[parts[parts.length-1]] = val; }
+
+function buildCfgUI(){
+  const visGrid = document.getElementById('visGrid');
+  visGrid.innerHTML = VIS_FIELDS.map(g => '<h3 style="grid-column:1/-1;margin:6px 0 2px">'+g.group+'</h3>' + g.items.map(([key,label])=>
+    '<label><input type="checkbox" data-vis="'+key+'" '+(CFG.visibility[key]?'checked':'')+'>'+label+'</label>'
+  ).join('')).join('');
+
+  const calcGrid = document.getElementById('calcGrid');
+  calcGrid.innerHTML = CALC_FIELDS.map(([key,label])=>
+    '<div class="item">'+label+'<select data-calc="'+key+'">'+
+    '<option value="avg"'+(CFG.calcMode[key]==='avg'?' selected':'')+'>AVG</option>'+
+    '<option value="sum"'+(CFG.calcMode[key]==='sum'?' selected':'')+'>SUM</option>'+
+    '</select></div>'
+  ).join('');
+
+  const labelGrid = document.getElementById('labelGrid');
+  labelGrid.innerHTML = LABEL_FIELDS.map(([path,label])=>
+    '<div class="item">'+label+'<input type="text" data-label="'+path+'" value="'+(getPath(CFG,path)||'').toString().replace(/"/g,'&quot;')+'"></div>'
+  ).join('');
+}
+
+function readCfgFromUI(){
+  document.querySelectorAll('[data-vis]').forEach(el=>{ CFG.visibility[el.dataset.vis] = el.checked; });
+  document.querySelectorAll('[data-calc]').forEach(el=>{ CFG.calcMode[el.dataset.calc] = el.value; });
+  document.querySelectorAll('[data-label]').forEach(el=>{ setPath(CFG, el.dataset.label, el.value); });
+}
+
+async function saveCfg(){
+  readCfgFromUI();
+  const status = document.getElementById('cfgSaveStatus');
+  status.textContent = 'กำลังบันทึก…';
+  try{
+    const res = await fetch(SUPABASE_URL + '/rest/v1/sla_config?id=eq.1', {
+      method:'PATCH',
+      headers:{ apikey:SUPABASE_KEY, 'Content-Type':'application/json', Prefer:'return=minimal,resolution=merge-duplicates' },
+      body: JSON.stringify({ id:1, config: CFG, updated_at: new Date().toISOString() })
+    });
+    if(!res.ok){
+      // แถวอาจยังไม่มี — ลอง insert แทน
+      const res2 = await fetch(SUPABASE_URL + '/rest/v1/sla_config', {
+        method:'POST',
+        headers:{ apikey:SUPABASE_KEY, 'Content-Type':'application/json', Prefer:'return=minimal' },
+        body: JSON.stringify({ id:1, config: CFG, updated_at: new Date().toISOString() })
+      });
+      if(!res2.ok) throw new Error(await describeError(res2));
+    }
+    status.innerHTML = '<span class="ok">บันทึกล่าสุด</span> ' + new Date().toLocaleString('th-TH');
+    applyCfg();
+    applyFilter();
+  }catch(err){
+    status.innerHTML = '<span class="err">บันทึกไม่สำเร็จ: '+err.message+' — ตรวจสอบว่ามีตาราง sla_config (คอลัมน์ id, config jsonb, updated_at) ใน Supabase</span>';
+  }
+}
+
+function deepMerge(base, extra){
+  if(!extra) return base;
+  const out = Array.isArray(base) ? base.slice() : Object.assign({}, base);
+  Object.keys(extra).forEach(k=>{
+    if(extra[k] && typeof extra[k]==='object' && !Array.isArray(extra[k]) && base[k] && typeof base[k]==='object'){
+      out[k] = deepMerge(base[k], extra[k]);
+    } else out[k] = extra[k];
+  });
+  return out;
+}
+
+function applyCfg(){
+  document.getElementById('titleText').textContent = CFG.title;
+  document.getElementById('slaBadge').textContent = CFG.slaBadgeLabel + ': —';
+  document.getElementById('lbl_zone').textContent = CFG.filterLabels.zone;
+  document.getElementById('lbl_div').textContent = CFG.filterLabels.division;
+  document.getElementById('lbl_wm').textContent = CFG.filterLabels.wm;
+  document.getElementById('lbl_fc').textContent = CFG.filterLabels.fc;
+  document.getElementById('lbl_store').textContent = CFG.filterLabels.store;
+  document.getElementById('lbl_date').textContent = CFG.filterLabels.date;
+  document.getElementById('applyBtn').textContent = CFG.applyLabel;
+
+  const v = CFG.visibility;
+  const show = (id, on) => { const el = document.getElementById(id); if(el) el.style.display = on ? '' : 'none'; };
+  show('kc_totalSales', v.totalSales); show('kc_storeAvg', v.storeAvg); show('kc_deliverySales', v.deliverySales);
+  show('kc_avgSla', v.avgSla); show('kc_cancel', v.cancelRate); show('kc_capacity', v.capacity); show('kc_callLate', v.callLate);
+  show('trendPanel', v.trendTable); show('tiersPanel', v.tiers);
+  show('hourlyPanel', v.hourlyChart); show('capacityPanel', v.capacityGauge);
+  show('processPanel', v.processBreakdown); show('rootCausePanel', v.rootCause);
+  show('insightsPanel', v.insights); show('fcDetailPanel', v.fcDetail);
+}
+
+async function loadCfg(){
+  try{
+    const res = await fetch(SUPABASE_URL + '/rest/v1/sla_config?id=eq.1&select=config', { headers:{apikey:SUPABASE_KEY} });
+    if(res.ok){
+      const data = await res.json();
+      if(data[0] && data[0].config) CFG = deepMerge(JSON.parse(JSON.stringify(DEFAULT_CFG)), data[0].config);
+    }
+  }catch(e){}
+  applyCfg();
+  buildCfgUI();
+}
+
+const nf = n => isFinite(n) ? n.toLocaleString('en-US',{maximumFractionDigits:1}) : '-';
+const distinct = (arr,key) => [...new Set(arr.map(r=>r[key]).filter(v=>v!==undefined && v!==null && v!==''))].sort();
+
+function fillSelect(id, values){
+  const sel = document.getElementById(id);
+  const cur = sel.value;
+  sel.innerHTML = sel.options[0].outerHTML;
+  values.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); });
+  if(values.includes(cur)) sel.value = cur;
+}
+
+function currentFilterValues(){
+  return {
+    zone: document.getElementById('f_zone').value,
+    division: document.getElementById('f_div').value,
+    wm: document.getElementById('f_wm').value,
+    fc: document.getElementById('f_fc').value,
+    organize: document.getElementById('f_organize').value,
+    order_date: document.getElementById('f_date').value,
+  };
+}
+
+function rowsMatchingExcept(filters, exceptKey){
+  return ALL.filter(r => Object.entries(filters).every(([k,v]) => {
+    if(k === exceptKey) return true;
+    return !v || String(r[k]) === v;
+  }));
+}
+
+function populateFilters(){
+  const f = currentFilterValues();
+  fillSelect('f_zone', distinct(rowsMatchingExcept(f,'zone'), 'zone'));
+  fillSelect('f_div', distinct(rowsMatchingExcept(f,'division'), 'division'));
+  fillSelect('f_wm', distinct(rowsMatchingExcept(f,'wm'), 'wm'));
+  fillSelect('f_fc', distinct(rowsMatchingExcept(f,'fc'), 'fc'));
+  fillSelect('f_organize', distinct(rowsMatchingExcept(f,'organize'), 'organize'));
+  fillSelect('f_date', distinct(rowsMatchingExcept(f,'order_date'), 'order_date'));
+}
+
+['f_zone','f_div','f_wm','f_fc','f_organize','f_date'].forEach(id=>{
+  document.getElementById(id).addEventListener('change', populateFilters);
+});
+
+function sum(arr,key){ return arr.reduce((a,r)=>a+(Number(r[key])||0),0); }
+function avgOf(arr,key){
+  const vals = arr.map(r=>Number(r[key])).filter(v=>!isNaN(v) && r[key]!=='' && r[key]!==undefined);
+  return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
+}
+function agg(arr,key,mode){ return mode==='avg' ? avgOf(arr,key) : sum(arr,key); }
+function groupBy(arr,key){
+  const map = new Map();
+  arr.forEach(r=>{ const k = r[key] ?? ''; if(!map.has(k)) map.set(k,[]); map.get(k).push(r); });
+  return map;
+}
+function hasField(key){ return ALL.some(r=> r[key]!==undefined && r[key]!==''); }
+
+const TH_MONTHS = {'มกราคม':1,'กุมภาพันธ์':2,'มีนาคม':3,'เมษายน':4,'พฤษภาคม':5,'มิถุนายน':6,'กรกฎาคม':7,'สิงหาคม':8,'กันยายน':9,'ตุลาคม':10,'พฤศจิกายน':11,'ธันวาคม':12};
+const TH_MONTH_SHORT = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+function parseMonthKey(v){
+  if(v===undefined || v===null || v==='') return null;
+  if(typeof v==='number' && v>20000 && v<60000){
+    const d = new Date(Math.round((v-25569)*86400*1000));
+    if(!isNaN(d.getTime())) return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+  }
+  const s = String(v).trim();
+  for(const [name,num] of Object.entries(TH_MONTHS)){
+    if(s.includes(name)){
+      const ym = s.match(/(\d{4})/);
+      let y = ym ? parseInt(ym[1]) : null;
+      if(y && y>2400) y -= 543;
+      if(y) return y+'-'+String(num).padStart(2,'0');
+    }
+  }
+  const dm = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+  if(dm){
+    let mm=+dm[2], yy=+dm[3];
+    if(yy<100) yy+=2000;
+    if(yy>2400) yy-=543;
+    if(mm>=1 && mm<=12) return yy+'-'+String(mm).padStart(2,'0');
+  }
+  const d2 = new Date(s);
+  if(!isNaN(d2.getTime())) return d2.getFullYear()+'-'+String(d2.getMonth()+1).padStart(2,'0');
+  return null;
+}
+function monthLabel(key){
+  if(!key) return '-';
+  const [y,m] = key.split('-').map(Number);
+  return TH_MONTH_SHORT[m] + ' ' + (y+543);
+}
+
+function renderGauge(el, pct){
+  if(pct===null || pct===undefined || isNaN(pct)){
+    el.style.background = 'var(--green-light)';
+    el.innerHTML = '<div class="mono" style="font-size:15px;color:var(--muted)">Waiting</div>';
+    return;
+  }
+  const clamped = Math.max(0, Math.min(pct, 150));
+  const color = pct>100 ? 'var(--red)' : (pct>=80 ? 'var(--amber)' : 'var(--green)');
+  el.style.background = 'conic-gradient('+color+' '+(Math.min(clamped,100)*3.6)+'deg, var(--green-light) 0deg)';
+  el.innerHTML = '<div style="background:#fff;width:112px;height:112px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700">'+nf(pct)+'%</div>';
+}
+function renderDonut(el, legendEl, segs){
+  const total = segs.reduce((a,s)=>a+s.v,0) || 1;
+  let acc = 0;
+  const stops = segs.map(s=>{ const start=acc/total*360; acc+=s.v; const end=acc/total*360; return s.c+' '+start+'deg '+end+'deg'; }).join(',');
+  el.style.background = 'conic-gradient('+stops+')';
+  el.innerHTML = '<div style="background:#fff;width:112px;height:112px;border-radius:50%"></div>';
+  if(legendEl) legendEl.innerHTML = segs.map(s=>s.l+' '+nf(s.v/total*100)+'%').join(' · ');
+}
+
+function renderHourlyChart(data){
+  const wrap = document.getElementById('hourlyChartWrap');
+  const emptyNote = document.getElementById('hourlyEmptyNote');
+  if(!data.length){ wrap.innerHTML=''; emptyNote.style.display='block'; return; }
+  emptyNote.style.display = 'none';
+  const W=640,H=260,padL=42,padR=42,padT=10,padB=28;
+  const innerW=W-padL-padR, innerH=H-padT-padB;
+  const maxSla = Math.max(...data.map(d=>d.avgSla),1);
+  const maxTc = Math.max(...data.map(d=>d.avgTc),1);
+  const niceSla = Math.max(5, Math.ceil(maxSla/5)*5);
+  const niceTc = Math.max(5, Math.ceil(maxTc/5)*5);
+  const xStep = data.length>1 ? innerW/(data.length-1) : 0;
+  const pt = (i,v,nice) => [padL + i*xStep, padT + innerH - (v/nice*innerH)];
+  const slaPts = data.map((d,i)=>pt(i,d.avgSla,niceSla));
+  const tcPts = data.map((d,i)=>pt(i,d.avgTc,niceTc));
+  const toPoly = pts => pts.map(p=>p[0]+','+p[1]).join(' ');
+  let grid = '';
+  for(let i=0;i<=5;i++){
+    const y = padT + innerH - innerH*i/5;
+    grid += '<line x1="'+padL+'" y1="'+y+'" x2="'+(W-padR)+'" y2="'+y+'" stroke="var(--line)" stroke-width="1"/>';
+    grid += '<text class="axisMuted" x="'+(padL-8)+'" y="'+(y+3)+'" text-anchor="end">'+Math.round(niceSla*i/5)+'</text>';
+    grid += '<text class="axisMuted" x="'+(W-padR+8)+'" y="'+(y+3)+'" text-anchor="start">'+Math.round(niceTc*i/5)+'</text>';
+  }
+  const xLabels = data.map((d,i)=>'<text class="axisMuted" x="'+(padL+i*xStep)+'" y="'+(H-8)+'" text-anchor="middle">'+d.h+'</text>').join('');
+  const dots = pts => pts.map(p=>'<circle cx="'+p[0]+'" cy="'+p[1]+'" r="3" fill="inherit"/>').join('');
+  wrap.innerHTML =
+    '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto">' + grid + xLabels +
+    '<polyline points="'+toPoly(slaPts)+'" fill="none" stroke="var(--green)" stroke-width="2.5"/>' +
+    '<g fill="var(--green)">'+dots(slaPts)+'</g>' +
+    '<polyline points="'+toPoly(tcPts)+'" fill="none" stroke="#3b82f6" stroke-width="2.5"/>' +
+    '<g fill="#3b82f6">'+dots(tcPts)+'</g>' +
+    '</svg>' +
+    '<div class="legendRow"><span><i class="dot" style="background:var(--green)"></i>SLA เฉลี่ย (นาที)</span><span><i class="dot" style="background:#3b82f6"></i>TC เฉลี่ย</span></div>';
+}
+
+function renderTrendTable(rows){
+  const f = currentFilterValues();
+  const storeQuery = document.getElementById('f_store').value.trim().toLowerCase();
+  const base = ALL.filter(r => Object.entries(f).every(([k,v]) => k==='order_date' || !v || String(r[k])===v) &&
+    (!storeQuery || String(r.store??'').toLowerCase().includes(storeQuery)));
+  const byStore = groupBy(base,'store');
+  const result = [];
+  byStore.forEach((rs, store)=>{
+    if(!store) return;
+    const byMonth = new Map();
+    rs.forEach(r=>{
+      const mk = parseMonthKey(r.order_date);
+      if(!mk) return;
+      if(!byMonth.has(mk)) byMonth.set(mk, []);
+      byMonth.get(mk).push(r);
+    });
+    const months = [...byMonth.keys()].sort().reverse();
+    if(months.length < 2) return;
+    const [latest, prev] = months;
+    const latestRows = byMonth.get(latest), prevRows = byMonth.get(prev);
+    const avgLatest = avgOf(latestRows,'sla_min');
+    const avgPrev = avgOf(prevRows,'sla_min');
+    if(avgLatest>45 && avgPrev>45){
+      const name = rs[0].storename || '';
+      let trend, trendColor;
+      if(avgLatest>avgPrev){ trend='เพิ่มขึ้น ▲'; trendColor='var(--red)'; }
+      else if(avgLatest<avgPrev){ trend='ลดลง ▼'; trendColor='#1f9d6b'; }
+      else { trend='คงที่ →'; trendColor='var(--muted)'; }
+      result.push({store, name, avgPrev, avgLatest, trend, trendColor, prevLabel:monthLabel(prev), latestLabel:monthLabel(latest)});
+    }
+  });
+  result.sort((a,b)=>b.avgLatest-a.avgLatest);
+  document.getElementById('trendBadge').textContent = result.length + ' ร้าน';
+  document.getElementById('trendBody').innerHTML = result.length
+    ? result.map(d=>'<tr><td>'+d.store+'</td><td>'+(d.name||'-')+'</td><td>'+nf(d.avgPrev)+' นาที ('+d.prevLabel+')</td><td>'+nf(d.avgLatest)+' นาที ('+d.latestLabel+')</td><td style="color:'+d.trendColor+';font-weight:600">'+d.trend+'</td></tr>').join('')
+    : '<tr><td colspan="5" style="text-align:center;color:var(--muted)">ไม่พบร้านที่ SLA เกิน 45 นาทีต่อเนื่อง 2 เดือน ตาม Filter ที่เลือก</td></tr>';
+}
+
+function applyFilter(){
+  const f = currentFilterValues();
+  const storeQuery = document.getElementById('f_store').value.trim().toLowerCase();
+  const rows = ALL.filter(r =>
+    Object.entries(f).every(([k,v]) => !v || String(r[k])===v) &&
+    (!storeQuery || String(r.store ?? '').toLowerCase().includes(storeQuery))
+  );
+  document.getElementById('rowCount').textContent = rows.length;
+  document.getElementById('alertBox').style.display = rows.length ? 'none' : 'block';
+  document.getElementById('slaBadge').textContent = CFG.slaBadgeLabel + ': ' + (rows.length ? (avgOf(rows,'sla_min')<=45 ? 'ปกติ' : 'เกินเป้า') : '—');
+
+  const salesStore = sum(rows,'sales_store');
+  const salesDelivery = sum(rows,'sales_delivery');
+  const tcDeliverySum = sum(rows,'tc_delivery');
+  const cancel = sum(rows,'cancel');
+  const cancelRate = tcDeliverySum ? cancel/tcDeliverySum*100 : 0;
+  const storeAvg = rows.length ? salesStore/rows.length : 0;
+  const deliveryAvg = rows.length ? salesDelivery/rows.length : 0;
+  const callLate = sum(rows,'call_late');
+  const totalSales = salesStore + salesDelivery;
+
+  document.getElementById('k_totalSales').textContent = rows.length ? nf(totalSales) : '-';
+  document.getElementById('k_storeAvg').textContent = rows.length ? nf(storeAvg) : '-';
+  document.getElementById('k_deliverySales2').textContent = rows.length ? nf(deliveryAvg) : '-';
+  document.getElementById('k_callLate').textContent = rows.length ? nf(callLate) : '-';
+  document.getElementById('k_cancel').textContent = rows.length ? nf(cancelRate)+'%' : '-';
+
+  const slaRows = rows.filter(r=>r.sla_min!==undefined && r.sla_min!=='' && !isNaN(Number(r.sla_min)));
+  const avgSla = slaRows.length ? sum(slaRows,'sla_min')/slaRows.length : 0;
+  document.getElementById('k_avgSla').textContent = slaRows.length ? nf(avgSla)+' นาที' : '-';
+  const capPct = slaRows.length ? Math.min(avgSla/45*100,999) : 0;
+  document.getElementById('k_capacity').textContent = slaRows.length ? nf(capPct)+'%' : '-';
+  renderGauge(document.getElementById('capGauge'), slaRows.length ? capPct : null);
+  document.getElementById('capGaugeNote').textContent = slaRows.length ? 'ตามข้อมูลที่เลือก' : 'Waiting for Filter';
+
+  const t1 = slaRows.filter(r=>Number(r.sla_min)<45).length;
+  const t2 = slaRows.filter(r=>Number(r.sla_min)>=45 && Number(r.sla_min)<=60).length;
+  const t3 = slaRows.filter(r=>Number(r.sla_min)>60).length;
+  const tot = slaRows.length || 1;
+  document.getElementById('t1n').textContent = t1; document.getElementById('t1p').textContent = nf(t1/tot*100)+'%'; document.getElementById('t1b').style.width = (t1/tot*100)+'%';
+  document.getElementById('t2n').textContent = t2; document.getElementById('t2p').textContent = nf(t2/tot*100)+'%'; document.getElementById('t2b').style.width = (t2/tot*100)+'%';
+  document.getElementById('t3n').textContent = t3; document.getElementById('t3p').textContent = nf(t3/tot*100)+'%'; document.getElementById('t3b').style.width = (t3/tot*100)+'%';
+
+  renderFcDetail(rows);
+  renderProcessBreakdown(rows);
+  renderHourly(rows);
+  renderInsights(rows);
+  renderTrendTable(rows);
+}
+
+function renderFcDetail(rows){
+  const mode = CFG.calcMode.fcDetail;
+  const groups = groupBy(rows,'store');
+  const data = [...groups.entries()].map(([store, rs])=>{
+    const sales = agg(rs,'sales_store',mode)+agg(rs,'sales_delivery',mode);
+    const tc = agg(rs,'tc_store',mode)+agg(rs,'tc_delivery',mode);
+    const slaRs = rs.filter(r=>r.sla_min!=='' && !isNaN(Number(r.sla_min)));
+    const avgSla = slaRs.length ? sum(slaRs,'sla_min')/slaRs.length : 0;
+    const cancelPct = sum(rs,'tc_delivery') ? agg(rs,'cancel',mode)/sum(rs,'tc_delivery')*100 : 0;
+    const zone = rs[0]?.zone || '';
+    let status = 'Normal';
+    if(avgSla > 60) status = 'Critical'; else if(avgSla >= 45) status = 'Risk';
+    return {store, zone, sales, tc, avgSla, cancelPct, status};
+  }).sort((a,b)=>b.sales-a.sales).slice(0,30);
+  document.getElementById('fcDetailBody').innerHTML = data.map(d=>
+    '<tr><td>'+(d.store||'-')+'</td><td>'+(d.zone||'-')+'</td><td>'+nf(d.sales)+'</td><td>'+nf(d.tc)+'</td><td>'+nf(d.avgSla)+'</td><td>'+nf(d.cancelPct)+'%</td><td>'+d.status+'</td></tr>'
+  ).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--muted)">ไม่มีข้อมูล</td></tr>';
+}
+
+function renderProcessBreakdown(rows){
+  const has = hasField('step_receive')||hasField('step_pack')||hasField('step_wait')||hasField('step_deliver');
+  document.getElementById('processPanel').style.display = (has && CFG.visibility.processBreakdown) ? 'block' : 'none';
+  document.getElementById('rootCausePanel').style.display = (has && CFG.visibility.rootCause) ? 'block' : 'none';
+  if(!has) return;
+
+  const mode = CFG.calcMode.stepTimes;
+  const rc = agg(rows,'step_receive',mode), pk = agg(rows,'step_pack',mode), wt = agg(rows,'step_wait',mode), dl = agg(rows,'step_deliver',mode);
+  if(rows.length){
+    renderDonut(document.getElementById('procDonut'), null, [
+      {v:rc,c:'#34d399',l:'รับ'},{v:pk,c:'#3b82f6',l:'จัด'},{v:wt,c:'#f0ad4e',l:'รอส่ง'},{v:dl,c:'#e0525f',l:'ส่ง'}
+    ]);
+  } else {
+    const el = document.getElementById('procDonut'); el.style.background='var(--green-light)'; el.textContent='';
+  }
+
+  const groups = groupBy(rows,'fc');
+  const data = [...groups.entries()].map(([fc, rs])=>{
+    const rcF=avgOf(rs,'step_receive'), pkF=avgOf(rs,'step_pack'), wtF=avgOf(rs,'step_wait'), dlF=avgOf(rs,'step_deliver');
+    return {fc, rc:rcF, pk:pkF, wt:wtF, dl:dlF, total: rcF+pkF+wtF+dlF};
+  });
+  document.getElementById('processBody').innerHTML = data.map(d=>
+    '<tr><td>'+(d.fc||'-')+'</td><td>'+nf(d.rc)+'</td><td>'+nf(d.pk)+'</td><td>'+nf(d.wt)+'</td><td>'+nf(d.dl)+'</td><td>'+nf(d.total)+'</td></tr>'
+  ).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--muted)">กรุณาเลือก Filter เพื่อแสดงข้อมูล</td></tr>';
+}
+
+function renderHourly(rows){
+  const panel = document.getElementById('hourlyPanel');
+  if(!hasField('order_hour') || !CFG.visibility.hourlyChart){ panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  const groups = groupBy(rows,'order_hour');
+  const data = [...groups.entries()].map(([h, rs])=>{
+    const slaRs = rs.filter(r=>r.sla_min!=='' && !isNaN(Number(r.sla_min)));
+    const avgSla = slaRs.length ? sum(slaRs,'sla_min')/slaRs.length : 0;
+    const avgTc = rs.length ? (sum(rs,'tc_store')+sum(rs,'tc_delivery'))/rs.length : 0;
+    return {h, avgSla, avgTc};
+  }).sort((a,b)=> String(a.h).localeCompare(String(b.h)));
+  document.getElementById('hourlyBody').innerHTML = data.map(d=>
+    '<tr><td>'+d.h+'</td><td>'+nf(d.avgSla)+'</td><td>'+nf(d.avgTc)+'</td></tr>'
+  ).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--muted)">ไม่มีข้อมูล</td></tr>';
+  renderHourlyChart(rows.length ? data : []);
+}
+
+function renderInsights(rows){
+  const el = document.getElementById('insightsList');
+  if(!rows.length){ el.innerHTML = '<li>ยังไม่วิเคราะห์ข้อมูล กรุณาเลือก Filter แล้วกด Apply Filter</li>'; return; }
+  const items = [];
+  const groups = groupBy(rows,'fc');
+  let worstSla = null, worstCancel = null;
+  groups.forEach((rs,fc)=>{
+    const slaRs = rs.filter(r=>r.sla_min!=='' && !isNaN(Number(r.sla_min)));
+    const avgSla = slaRs.length ? sum(slaRs,'sla_min')/slaRs.length : 0;
+    const tc = sum(rs,'tc_store')+sum(rs,'tc_delivery');
+    const cancelPct = tc ? sum(rs,'cancel')/tc*100 : 0;
+    if(!worstSla || avgSla > worstSla.avgSla) worstSla = {fc, avgSla};
+    if(!worstCancel || cancelPct > worstCancel.cancelPct) worstCancel = {fc, cancelPct};
+  });
+  if(worstSla) items.push('FC ที่ SLA เฉลี่ยสูงสุด: <b>'+(worstSla.fc||'-')+'</b> ('+nf(worstSla.avgSla)+' นาที)');
+  if(worstCancel) items.push('FC ที่อัตรายกเลิกสูงสุด: <b>'+(worstCancel.fc||'-')+'</b> ('+nf(worstCancel.cancelPct)+'%)');
+  const over60 = rows.filter(r=>Number(r.sla_min)>60).length;
+  items.push('ออเดอร์ที่เกิน 60 นาที: <b>'+over60+'</b> รายการ จากทั้งหมด '+rows.length+' รายการ');
+  el.innerHTML = items.map(t=>'<li>'+t+'</li>').join('');
+}
+
+async function loadData(manual){
+  document.getElementById('updatedAt').textContent = 'กำลังเชื่อมต่อข้อมูล…';
+  document.getElementById('connStatus').textContent = 'กำลังเชื่อมต่อข้อมูลล่าสุด…';
+  try{
+    const res = await fetch(SUPABASE_URL + '/rest/v1/sla_data?id=eq.1&select=records,updated_at', {
+      headers: { apikey: SUPABASE_KEY }
+    });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const row = data[0] || {};
+    ALL = row.records || [];
+    document.getElementById('updatedAt').textContent = ALL.length
+      ? 'อัปเดตล่าสุด: ' + new Date(row.updated_at || Date.now()).toLocaleString('th-TH') + ' • ' + ALL.length + ' รายการ'
+      : 'ยังไม่มีข้อมูล — อัปโหลดไฟล์ด้านล่างเพื่อเริ่มต้น';
+    document.getElementById('connStatus').textContent = ALL.length
+      ? 'เชื่อมต่อข้อมูลล่าสุดแล้ว ' + ALL.length.toLocaleString('en-US') + ' รายการ'
+      : 'ยังไม่มีข้อมูลในระบบ';
+    if(!manual){
+      document.getElementById('f_zone').value = '';
+      document.getElementById('f_div').value = '';
+      document.getElementById('f_wm').value = '';
+      document.getElementById('f_fc').value = '';
+      document.getElementById('f_organize').value = '';
+      document.getElementById('f_date').value = '';
+    }
+    populateFilters();
+    applyFilter();
+  }catch(e){
+    document.getElementById('updatedAt').textContent = 'โหลดข้อมูลไม่สำเร็จ: ' + e.message;
+    document.getElementById('connStatus').textContent = 'เชื่อมต่อไม่สำเร็จ: ' + e.message;
+  }
+}
+loadCfg().then(()=>loadData());
 </script>
 </body>
 </html>
