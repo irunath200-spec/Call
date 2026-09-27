@@ -34,13 +34,14 @@ th{color:var(--muted);font-weight:500}
 .map{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
 @media(max-width:600px){.map{grid-template-columns:1fr}}
 .map .row{display:flex;align-items:center;gap:8px;font-size:12.5px}
-.map .row span{width:130px;color:var(--muted)}
+.map .row span{width:150px;color:var(--muted)}
 select{flex:1;background:#0c1424;border:1px solid var(--line);color:var(--text);padding:7px 9px;border-radius:8px;font-family:inherit;font-size:12.5px}
 button.primary{background:var(--cyan);color:#04222b;border:none;padding:11px 20px;border-radius:8px;font-weight:600;font-size:13.5px;cursor:pointer;margin-top:14px}
 button.primary:disabled{opacity:.4;cursor:not-allowed}
 .ok{color:var(--green)} .err{color:var(--red)}
 .badge{display:inline-block;background:#0c1424;border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:11px;color:var(--cyan);margin-left:6px}
 a.link{color:var(--cyan);text-decoration:none;font-size:12.5px}
+.hint{margin-top:14px;font-size:11.5px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -52,7 +53,9 @@ a.link{color:var(--cyan);text-decoration:none;font-size:12.5px}
   <div class="panel">
     <h2>1. เลือกไฟล์</h2>
     <div class="drop" id="drop" onclick="document.getElementById('file').click()">
-      คลิกเพื่อเลือกไฟล์ .xlsx / .xls / .csv<br><span style="font-size:11.5px">คอลัมน์ที่รองรับ: Zone, ฝ่าย, เขต, FC, Store ID, Sales Store, Sales Delivery, TC Store, TC Delivery, SLA (min), Cancel</span>
+      คลิกเพื่อเลือกไฟล์ .xlsx / .xls / .csv<br>
+      <span style="font-size:11.5px">คอลัมน์หลัก (จำเป็น): Zone, ฝ่าย, เขต, FC, Store ID, Sales Store, Sales Delivery, TC Store, TC Delivery, SLA (min), Cancel</span><br>
+      <span style="font-size:11.5px;color:var(--muted)">คอลัมน์เสริม (ไม่บังคับ): Organize, วันที่, ชั่วโมง, BPSD, TA, เวลารับ/จัด/รอส่ง/ส่ง</span>
     </div>
     <input type="file" id="file" accept=".xlsx,.xls,.csv">
     <div class="status" id="fileStatus"></div>
@@ -62,7 +65,9 @@ a.link{color:var(--cyan);text-decoration:none;font-size:12.5px}
     <h2>2. จับคู่คอลัมน์อัตโนมัติ <span class="badge" id="rowsFound"></span></h2>
     <div class="map" id="mapGrid"></div>
     <div class="status" id="mapWarning"></div>
-    <a class="link" href="#" id="toggleManual" onclick="toggleManual(event)">แก้ไขการจับคู่ด้วยตัวเอง</a>
+    <div class="hint">ฟิลด์เสริม (ไม่บังคับ — มีก็แสดงผลเพิ่มเติมในหน้า Dashboard เช่น Process Breakdown, SLA รายชั่วโมง):</div>
+    <div class="map" id="optionalGrid" style="margin-top:6px"></div>
+    <a class="link" href="#" id="toggleManual" onclick="toggleManual(event)" style="display:inline-block;margin-top:12px">แก้ไขการจับคู่ด้วยตัวเอง</a>
     <div id="manualGrid" class="map" style="display:none;margin-top:10px"></div>
     <div class="scroll"><table id="preview"></table></div>
     <button class="primary" id="saveBtn" onclick="saveData()">บันทึกข้อมูลและอัปเดต Dashboard</button>
@@ -76,19 +81,27 @@ a.link{color:var(--cyan);text-decoration:none;font-size:12.5px}
 </main>
 <script>
 // อิงหมวดตรงจากหน้า Dashboard: https://irunath200-spec.github.io/Call/
-// (Zone, ฝ่าย, เขต, FC, Store ID, Sales Store, Sales Delivery, TC ร้าน, TC Delivery, SLA, Cancel)
 const FIELD_DEFS = [
-  {key:'zone', label:'Zone', aliases:['zone','โซน']},
-  {key:'division', label:'ฝ่าย', aliases:['ฝ่าย','ฝาย','division','dept','แผนก']},
-  {key:'wm', label:'เขต', aliases:['เขต','wm','เขตขาย','area','region']},
-  {key:'fc', label:'FC', aliases:['fc','fulfillment center']},
-  {key:'store', label:'Store ID', aliases:['store id','store_id','storeid','store','รหัสร้าน']},
-  {key:'sales_store', label:'Sales Store (ยอดขายหน้าร้าน)', aliases:['sales store','ยอดขายหน้าร้าน','ยอดขายร้าน','store sales']},
-  {key:'sales_delivery', label:'Sales Delivery (ยอดขายเดลิเวอรี่)', aliases:['sales delivery','ยอดขายเดลิเวอรี่','ยอดขายเดลิเวอรี','delivery sales']},
-  {key:'tc_store', label:'TC ร้าน (ลูกค้าร้าน)', aliases:['tc store','tc ร้าน','tcร้าน','ลูกค้าร้าน','tc_store','tc หน้าร้าน']},
-  {key:'tc_delivery', label:'TC Delivery (ลูกค้าเดลิเวอรี่)', aliases:['tc delivery','tc เดลิเวอรี่','ลูกค้าเดลิเวอรี่','tc_delivery','tcเดลิเวอรี่']},
-  {key:'sla_min', label:'SLA (นาที)', aliases:['sla','sla (min)','sla min','sla_min','เวลา sla','sla นาที','นาที']},
-  {key:'cancel', label:'Cancel (TC Cancel)', aliases:['cancel','ยกเลิก','tc cancel','จำนวนยกเลิก']},
+  {key:'zone', label:'Zone', aliases:['zone','โซน'], required:true},
+  {key:'division', label:'ฝ่าย', aliases:['ฝ่าย','ฝาย','division','dept','แผนก'], required:true},
+  {key:'wm', label:'เขต', aliases:['เขต','wm','เขตขาย','area','region'], required:true},
+  {key:'fc', label:'FC', aliases:['fc','fulfillment center'], required:true},
+  {key:'store', label:'Store ID', aliases:['store id','store_id','storeid','store','รหัสร้าน'], required:true},
+  {key:'sales_store', label:'Sales Store (ยอดขายหน้าร้าน)', aliases:['sales store','ยอดขายหน้าร้าน','ยอดขายร้าน','store sales'], required:true},
+  {key:'sales_delivery', label:'Sales Delivery (ยอดขายเดลิเวอรี่)', aliases:['sales delivery','ยอดขายเดลิเวอรี่','ยอดขายเดลิเวอรี','delivery sales'], required:true},
+  {key:'tc_store', label:'TC ร้าน (ลูกค้าร้าน)', aliases:['tc store','tc ร้าน','tcร้าน','ลูกค้าร้าน','tc_store','tc หน้าร้าน'], required:true},
+  {key:'tc_delivery', label:'TC Delivery (ลูกค้าเดลิเวอรี่)', aliases:['tc delivery','tc เดลิเวอรี่','ลูกค้าเดลิเวอรี่','tc_delivery','tcเดลิเวอรี่'], required:true},
+  {key:'sla_min', label:'SLA (นาที)', aliases:['sla','sla (min)','sla min','sla_min','เวลา sla','sla นาที','นาที'], required:true},
+  {key:'cancel', label:'Cancel (TC Cancel)', aliases:['cancel','ยกเลิก','tc cancel','จำนวนยกเลิก'], required:true},
+  {key:'organize', label:'Organize', aliases:['organize','องค์กร','จัดกลุ่ม'], required:false},
+  {key:'order_date', label:'วันที่', aliases:['date','วันที่','order date','วันที่สั่ง'], required:false},
+  {key:'order_hour', label:'ชั่วโมง/เวลาออเดอร์', aliases:['hour','เวลา','ชั่วโมง','time','order time'], required:false},
+  {key:'bpsd', label:'BPSD', aliases:['bpsd'], required:false},
+  {key:'ta', label:'TA (ตะกร้าเฉลี่ย)', aliases:['ta','ตะกร้าเฉลี่ย','average basket'], required:false},
+  {key:'step_receive', label:'เวลารับออเดอร์ (นาที)', aliases:['เวลารับ','รับออเดอร์','received','accept'], required:false},
+  {key:'step_pack', label:'เวลาจัดสินค้า (นาที)', aliases:['เวลาจัด','จัดสินค้า','pack'], required:false},
+  {key:'step_wait', label:'เวลารอส่ง (นาที)', aliases:['รอส่ง','รอจัดส่ง','wait'], required:false},
+  {key:'step_deliver', label:'เวลาส่ง (นาที)', aliases:['เวลาส่ง','ส่งของ','deliver','delivery time'], required:false},
 ];
 let headers = [], rows = [], autoMap = {};
 
@@ -105,7 +118,6 @@ document.getElementById('file').addEventListener('change', e=>{
       const ws = wb.Sheets[wb.SheetNames[0]];
       const json = XLSX.utils.sheet_to_json(ws, {defval:''});
       if(!json.length){ document.getElementById('fileStatus').innerHTML = '<span class="err">ไม่พบข้อมูลในไฟล์</span>'; return; }
-      // ล้างชื่อคอลัมน์: ตัด BOM/ช่องว่างหัวท้ายที่ทำให้จับคู่ภาษาไทยไม่ติด
       headers = Object.keys(json[0]).map(h => h.toString().normalize('NFC').trim());
       rows = json.map(r=>{
         const clean = {};
@@ -122,60 +134,64 @@ document.getElementById('file').addEventListener('change', e=>{
 });
 
 // ไฟล์ CSV ที่ Excel เวอร์ชันไทยเซฟไว้ มักไม่ได้เป็น UTF-8 แต่เป็น Windows-874 (ANSI ไทย)
-// ถ้าอ่านเป็น UTF-8 ตรงๆ ตัวอักษรไทยจะกลายเป็นขยะ/อ่านไม่ออก จึงต้องตรวจสอบและสลับ codepage ให้อัตโนมัติ
 function readCsvSmart(bytes){
-  // มี BOM ของ UTF-8 อยู่แล้ว -> เป็น UTF-8 แน่นอน
   if(bytes[0]===0xEF && bytes[1]===0xBB && bytes[2]===0xBF){
     return XLSX.read(bytes, {type:'array'});
   }
   const utf8Text = new TextDecoder('utf-8', {fatal:false}).decode(bytes);
-  // ถ้าถอดเป็น UTF-8 แล้วเจอ replacement character (ตัวอักษรอ่านไม่ออก) แปลว่าไฟล์ไม่ใช่ UTF-8 จริง
   if(!utf8Text.includes('\uFFFD')){
     return XLSX.read(utf8Text, {type:'string'});
   }
-  // fallback: ลองถอดแบบ Windows-874 (ไทย) ซึ่งเป็นค่าเริ่มต้นของ Excel บนวินโดวส์ภาษาไทย
   return XLSX.read(bytes, {type:'array', codepage:874});
 }
 
 function norm(s){
   return s.toString()
     .normalize('NFC')
-    .replace(/[\u200B-\u200D\uFEFF]/g,'')   // ตัด zero-width space / BOM ที่หลงเหลือในเซลล์
-    .replace(/\u00A0/g,' ')                 // non-breaking space -> ช่องว่างปกติ
+    .replace(/[\u200B-\u200D\uFEFF]/g,'')
+    .replace(/\u00A0/g,' ')
     .trim()
     .toLowerCase()
     .replace(/[\s_./()-]/g,'');
 }
 
-function guessColumn(aliases){
+function guessColumnExact(aliases){
   const na = aliases.map(norm);
-  let h = headers.find(h => na.includes(norm(h)));
-  if(h) return h;
-  h = headers.find(h => na.some(a => norm(h).includes(a) || a.includes(norm(h))));
-  return h || '';
+  return headers.find(h => na.includes(norm(h))) || '';
+}
+function guessColumnFuzzy(aliases, usedCols){
+  const na = aliases.map(norm);
+  return headers.find(h => !usedCols.has(h) && na.some(a => norm(h).includes(a) || a.includes(norm(h)))) || '';
 }
 
-// จับคู่คอลัมน์อัตโนมัติทั้งหมดจากหมวดของหน้า Dashboard — ไม่ต้องเลือกเอง
+function mapRow(fd, found){
+  const row = document.createElement('div'); row.className='row';
+  row.innerHTML = '<span>'+fd.label+(fd.required?'':' <i style="color:var(--muted);font-weight:400">(ไม่บังคับ)</i>')+'</span><span style="flex:1;color:'+(found?'var(--green)':'var(--muted)')+'">'+
+    (found ? '✓ '+found : '— ไม่พบคอลัมน์ที่ตรงกัน —') + '</span>';
+  return row;
+}
+
 function buildMapUI(){
   document.getElementById('mapPanel').style.display = 'block';
   document.getElementById('rowsFound').textContent = rows.length + ' แถวข้อมูล';
   autoMap = {};
-  FIELD_DEFS.forEach(fd => autoMap[fd.key] = guessColumn(fd.aliases));
+  const used = new Set();
+  FIELD_DEFS.forEach(fd=>{ const c = guessColumnExact(fd.aliases); if(c){ autoMap[fd.key]=c; used.add(c);} });
+  FIELD_DEFS.forEach(fd=>{ if(!autoMap[fd.key]){ const c = guessColumnFuzzy(fd.aliases, used); if(c){ autoMap[fd.key]=c; used.add(c);} else autoMap[fd.key]=''; } });
 
-  const grid = document.getElementById('mapGrid');
-  grid.innerHTML = '';
-  let missing = [];
-  FIELD_DEFS.forEach(fd=>{
-    const found = autoMap[fd.key];
-    if(!found) missing.push(fd.label);
-    const row = document.createElement('div'); row.className='row';
-    row.innerHTML = '<span>'+fd.label+'</span><span style="flex:1;color:'+(found?'var(--green)':'var(--muted)')+'">'+
-      (found ? '✓ '+found : '— ไม่พบคอลัมน์ที่ตรงกัน —') + '</span>';
-    grid.appendChild(row);
+  const grid = document.getElementById('mapGrid'); grid.innerHTML = '';
+  let missingRequired = [];
+  FIELD_DEFS.filter(fd=>fd.required).forEach(fd=>{
+    if(!autoMap[fd.key]) missingRequired.push(fd.label);
+    grid.appendChild(mapRow(fd, autoMap[fd.key]));
   });
-  document.getElementById('mapWarning').innerHTML = missing.length
-    ? '<span style="color:var(--amber)">⚠ จับคู่ไม่ได้อัตโนมัติ '+missing.length+' หมวด: '+missing.join(', ')+' — ฟิลด์นี้จะบันทึกเป็นค่าว่าง เว้นแต่จะแก้ไขด้วยตัวเอง</span>'
-    : '<span class="ok">✓ จับคู่ครบทุกหมวดอัตโนมัติ</span>';
+
+  const optGrid = document.getElementById('optionalGrid'); optGrid.innerHTML = '';
+  FIELD_DEFS.filter(fd=>!fd.required).forEach(fd=> optGrid.appendChild(mapRow(fd, autoMap[fd.key])));
+
+  document.getElementById('mapWarning').innerHTML = missingRequired.length
+    ? '<span style="color:var(--amber)">⚠ จับคู่ไม่ได้อัตโนมัติ '+missingRequired.length+' หมวดที่จำเป็น: '+missingRequired.join(', ')+' — ฟิลด์นี้จะบันทึกเป็นค่าว่าง เว้นแต่จะแก้ไขด้วยตัวเอง</span>'
+    : '<span class="ok">✓ จับคู่ครบทุกหมวดที่จำเป็นอัตโนมัติ</span>';
 
   buildManualGrid();
   renderPreview();
@@ -209,20 +225,18 @@ function renderPreview(){
   t.innerHTML = html;
 }
 
-// ==== ตั้งค่า Supabase ของคุณตรงนี้ (ต้องเหมือนกับใน index.html) ====
+// ==== ตั้งค่า Supabase ====
 const SUPABASE_URL = 'https://axcudclbkzhtdnezhlbi.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_we-LE76OhWvNwg2Gd25Ccg_-kpE3Rjq';
-// ====================================================================
+// =============================
 
-// ดึงข้อความ error จริงที่ Supabase ส่งกลับมา (เช่น "Invalid API key", "permission denied", "JWT expired")
-// แทนที่จะโชว์แค่ "HTTP 401" เฉยๆ ซึ่งบอกสาเหตุไม่ได้
 async function describeError(res){
   let detail = '';
   try{
     const j = await res.clone().json();
     detail = j.message || j.error_description || j.error || j.hint || JSON.stringify(j);
   }catch(_){
-    try{ detail = await res.text(); }catch(_2){ /* ignore */ }
+    try{ detail = await res.text(); }catch(_2){}
   }
   return 'HTTP ' + res.status + (detail ? ' — ' + detail : '');
 }
@@ -246,11 +260,7 @@ async function saveData(){
   try{
     const res = await fetch(SUPABASE_URL + '/rest/v1/sla_data?id=eq.1', {
       method: 'PATCH',
-      headers: {
-        apikey: SUPABASE_KEY,
-        'Content-Type': 'application/json',
-        Prefer: 'return=minimal'
-      },
+      headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
       body: JSON.stringify({ records, updated_at: new Date().toISOString() })
     });
     if(!res.ok) throw new Error(await describeError(res));
