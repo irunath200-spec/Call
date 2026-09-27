@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SLA Delivery Command Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0f1c; --panel:#111a2e; --panel2:#0e1526; --line:rgba(255,255,255,.08);
+  --text:#e7edf7; --muted:#8b98b8; --cyan:#22d3ee; --amber:#f5a623; --red:#f4506a; --green:#34d399;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'Prompt',sans-serif;min-height:100%}
+.mono{font-family:'IBM Plex Mono',monospace}
+header{padding:22px 20px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(10,15,28,.92);backdrop-filter:blur(8px);z-index:10;padding-top:calc(22px + env(safe-area-inset-top,0px))}
+header h1{margin:0;font-size:20px;letter-spacing:.3px;display:flex;align-items:center;gap:10px}
+header h1 .dot{width:9px;height:9px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan)}
+header .sub{color:var(--muted);font-size:12.5px;margin-top:4px}
+main{max-width:1180px;margin:0 auto;padding:18px 16px 60px}
+.panel{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}
+.panel h2{font-size:13px;margin:0 0 12px;color:var(--muted);font-weight:600;letter-spacing:.2px}
+.filters{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+@media(max-width:820px){.filters{grid-template-columns:repeat(2,1fr)}}
+.field label{display:block;font-size:11.5px;color:var(--muted);margin-bottom:5px}
+select{width:100%;background:#0c1424;border:1px solid var(--line);color:var(--text);padding:9px 10px;border-radius:8px;font-family:inherit;font-size:13.5px}
+.actions{display:flex;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap}
+button.primary{background:var(--cyan);color:#04222b;border:none;padding:10px 18px;border-radius:8px;font-weight:600;font-size:13.5px;cursor:pointer}
+button.ghost{background:transparent;border:1px solid var(--line);color:var(--text);padding:10px 14px;border-radius:8px;font-size:13px;cursor:pointer}
+.count{color:var(--muted);font-size:12.5px;margin-left:auto}
+.count b{color:var(--cyan)}
+.grid7{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media(max-width:900px){.grid7{grid-template-columns:repeat(2,1fr)}}
+.card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px}
+.card .label{font-size:12px;color:var(--muted)}
+.card .val{font-size:22px;font-weight:600;margin-top:6px}
+.card .sub{font-size:11px;color:var(--muted);margin-top:4px}
+.card.accent{border-color:rgba(34,211,238,.35)}
+.card.warn .val{color:var(--amber)}
+.tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:700px){.tiers{grid-template-columns:1fr}}
+.tier{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--panel2)}
+.tier .t{font-size:12px;color:var(--muted);margin-bottom:8px}
+.tier .n{font-size:24px;font-weight:600}
+.tier .p{font-size:12px;color:var(--muted)}
+.bar{height:6px;border-radius:4px;background:#0c1424;margin-top:10px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--cyan)}
+.empty{color:var(--muted);text-align:center;padding:40px 10px;font-size:13.5px}
+footer{text-align:center;color:var(--muted);font-size:11.5px;padding:10px 0 30px}
+</style>
+</head>
+<body>
+<header>
+  <h1><span class="dot"></span>SLA DELIVERY COMMAND CENTER</h1>
+  <div class="sub" id="updatedAt">กำลังโหลดข้อมูล…</div>
+</header>
+<main>
+  <div class="panel">
+    <h2>Filters</h2>
+    <div class="filters">
+      <div class="field"><label>Zone</label><select id="f_zone"><option value="">All Zone</option></select></div>
+      <div class="field"><label>ฝ่าย</label><select id="f_div"><option value="">All ฝ่าย</option></select></div>
+      <div class="field"><label>เขต</label><select id="f_wm"><option value="">All เขต</option></select></div>
+      <div class="field"><label>FC</label><select id="f_fc"><option value="">All FC</option></select></div>
+      <div class="field"><label>Store ID</label><select id="f_store"><option value="">All Store</option></select></div>
+    </div>
+    <div class="actions">
+      <button class="primary" onclick="applyFilter()">Apply Filter</button>
+      <button class="ghost" onclick="loadData(true)">รีเฟรชข้อมูล</button>
+      <span class="count">จำนวนรายการที่เลือก <b id="rowCount">0</b> แถว</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Performance</h2>
+    <div class="grid7">
+      <div class="card accent"><div class="label">Sales Store</div><div class="val mono" id="k_salesStore">-</div><div class="sub">ยอดขายหน้าร้าน</div></div>
+      <div class="card"><div class="label">TC ร้าน</div><div class="val mono" id="k_tcStore">-</div><div class="sub">ลูกค้าร้าน</div></div>
+      <div class="card"><div class="label">TA ร้าน</div><div class="val mono" id="k_taStore">-</div><div class="sub">ต่อบิล/วัน</div></div>
+      <div class="card accent"><div class="label">Sales Delivery</div><div class="val mono" id="k_salesDelivery">-</div><div class="sub">ยอดขายเดลิเวอรี่</div></div>
+      <div class="card"><div class="label">% of Sale</div><div class="val mono" id="k_pctSale">-</div><div class="sub">สัดส่วนเดลิเวอรี่/รวม</div></div>
+      <div class="card"><div class="label">TC Delivery</div><div class="val mono" id="k_tcDelivery">-</div><div class="sub">ลูกค้าเดลิเวอรี่</div></div>
+      <div class="card"><div class="label">TA Delivery</div><div class="val mono" id="k_taDelivery">-</div><div class="sub">ต่อบิลเดลิเวอรี่</div></div>
+      <div class="card warn"><div class="label">Cancel Rate</div><div class="val mono" id="k_cancel">-</div><div class="sub">TC Cancel / TC Delivery</div></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>เงื่อนไขคุณภาพ</h2>
+    <div class="grid7" style="grid-template-columns:repeat(2,1fr);margin-bottom:14px">
+      <div class="card accent"><div class="label">Average SLA Time</div><div class="val mono" id="k_avgSla">-</div><div class="sub">นาที เฉลี่ยทุกออเดอร์ที่เลือก</div></div>
+      <div class="card"><div class="label">Capacity Utilization</div><div class="val mono" id="k_capacity">-</div><div class="sub">TC Delivery / เป้าหมาย FC</div></div>
+    </div>
+    <div class="tiers">
+      <div class="tier"><div class="t">SLA &lt; 45 min</div><div class="n mono" id="t1n">-</div><div class="p mono" id="t1p">-</div><div class="bar"><i id="t1b" style="width:0%"></i></div></div>
+      <div class="tier"><div class="t">SLA 45–60 min</div><div class="n mono" id="t2n">-</div><div class="p mono" id="t2p">-</div><div class="bar"><i id="t2b" style="width:0%;background:var(--amber)"></i></div></div>
+      <div class="tier"><div class="t">SLA &gt; 60 min</div><div class="n mono" id="t3n">-</div><div class="p mono" id="t3p">-</div><div class="bar"><i id="t3b" style="width:0%;background:var(--red)"></i></div></div>
+    </div>
+  </div>
+  <div id="emptyState" class="empty" style="display:none">ยังไม่มีข้อมูล — อัปโหลดไฟล์ Excel/CSV ได้ที่หน้า Admin</div>
+</main>
+<footer>ข้อมูลอัปเดตจากหน้า Admin • SLA Delivery Command Center</footer>
+<script>
+let ALL = [];
+const nf = n => isFinite(n) ? n.toLocaleString('en-US',{maximumFractionDigits:1}) : '-';
+const distinct = (arr,key) => [...new Set(arr.map(r=>r[key]).filter(v=>v!==undefined && v!==null && v!==''))].sort();
+
+function fillSelect(id, values){
+  const sel = document.getElementById(id);
+  const cur = sel.value;
+  sel.innerHTML = sel.options[0].outerHTML;
+  values.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); });
+  if(values.includes(cur)) sel.value = cur;
+}
+
+function populateFilters(){
+  fillSelect('f_zone', distinct(ALL,'zone'));
+  fillSelect('f_div', distinct(ALL,'division'));
+  fillSelect('f_wm', distinct(ALL,'wm'));
+  fillSelect('f_fc', distinct(ALL,'fc'));
+  fillSelect('f_store', distinct(ALL,'store'));
+}
+
+function sum(arr,key){ return arr.reduce((a,r)=>a+(Number(r[key])||0),0); }
+
+function applyFilter(){
+  const f = {
+    zone: document.getElementById('f_zone').value,
+    division: document.getElementById('f_div').value,
+    wm: document.getElementById('f_wm').value,
+    fc: document.getElementById('f_fc').value,
+    store: document.getElementById('f_store').value,
+  };
+  const rows = ALL.filter(r => Object.entries(f).every(([k,v]) => !v || String(r[k])===v));
+  document.getElementById('rowCount').textContent = rows.length;
+  document.getElementById('emptyState').style.display = ALL.length ? 'none':'block';
+
+  const salesStore = sum(rows,'sales_store');
+  const salesDelivery = sum(rows,'sales_delivery');
+  const tcStore = sum(rows,'tc_store');
+  const tcDelivery = sum(rows,'tc_delivery');
+  const taStore = tcStore ? salesStore/tcStore : 0;
+  const taDelivery = tcDelivery ? salesDelivery/tcDelivery : 0;
+  const pctSale = (salesStore+salesDelivery) ? salesDelivery/(salesStore+salesDelivery)*100 : 0;
+  const cancel = sum(rows,'cancel');
+  const cancelRate = tcDelivery ? cancel/tcDelivery*100 : 0;
+
+  document.getElementById('k_salesStore').textContent = nf(salesStore);
+  document.getElementById('k_salesDelivery').textContent = nf(salesDelivery);
+  document.getElementById('k_tcStore').textContent = nf(tcStore);
+  document.getElementById('k_tcDelivery').textContent = nf(tcDelivery);
+  document.getElementById('k_taStore').textContent = nf(taStore);
+  document.getElementById('k_taDelivery').textContent = nf(taDelivery);
+  document.getElementById('k_pctSale').textContent = rows.length ? nf(pctSale)+'%' : '-';
+  document.getElementById('k_cancel').textContent = rows.length ? nf(cancelRate)+'%' : '-';
+
+  const slaRows = rows.filter(r=>r.sla_min!==undefined && r.sla_min!=='' && !isNaN(Number(r.sla_min)));
+  const avgSla = slaRows.length ? sum(slaRows,'sla_min')/slaRows.length : 0;
+  document.getElementById('k_avgSla').textContent = slaRows.length ? nf(avgSla)+' นาที' : '-';
+
+  const t1 = slaRows.filter(r=>Number(r.sla_min)<45).length;
+  const t2 = slaRows.filter(r=>Number(r.sla_min)>=45 && Number(r.sla_min)<=60).length;
+  const t3 = slaRows.filter(r=>Number(r.sla_min)>60).length;
+  const tot = slaRows.length || 1;
+  document.getElementById('t1n').textContent = t1; document.getElementById('t1p').textContent = nf(t1/tot*100)+'%'; document.getElementById('t1b').style.width = (t1/tot*100)+'%';
+  document.getElementById('t2n').textContent = t2; document.getElementById('t2p').textContent = nf(t2/tot*100)+'%'; document.getElementById('t2b').style.width = (t2/tot*100)+'%';
+  document.getElementById('t3n').textContent = t3; document.getElementById('t3p').textContent = nf(t3/tot*100)+'%'; document.getElementById('t3b').style.width = (t3/tot*100)+'%';
+
+  const target = rows.length ? rows.length*100 : 0; // simple capacity placeholder vs target 100/FC row
+  document.getElementById('k_capacity').textContent = rows.length ? nf(Math.min(tcDelivery/(rows.length*100)*100,999))+'%' : '-';
+}
+
+async function loadData(manual){
+  document.getElementById('updatedAt').textContent = 'กำลังเชื่อมต่อข้อมูล…';
+  try{
+    const db = await claude.use('db');
+    if(!db){ document.getElementById('updatedAt').textContent='ไม่สามารถเชื่อมต่อฐานข้อมูลได้'; return; }
+    const doc = await db.doc('sla_data').get();
+    ALL = (doc && doc.data && doc.data.records) || [];
+    document.getElementById('updatedAt').textContent = ALL.length
+      ? 'อัปเดตล่าสุด: ' + new Date((doc.data.updatedAt)||Date.now()).toLocaleString('th-TH') + ' • ' + ALL.length + ' รายการ'
+      : 'ยังไม่มีข้อมูล — อัปโหลดไฟล์ที่หน้า Admin';
+    populateFilters();
+    applyFilter();
+  }catch(e){
+    document.getElementById('updatedAt').textContent = 'โหลดข้อมูลไม่สำเร็จ';
+  }
+}
+loadData();
+</script>
+</body>
+</html>
