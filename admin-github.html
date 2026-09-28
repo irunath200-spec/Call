@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SLA Command Center — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#0a0f1c;--p:#111a2e;--p2:#0e1526;--line:rgba(255,255,255,.08);--tx:#e7edf7;--mu:#8b98b8;--cy:#22d3ee;--am:#f5a623;--rd:#f4506a;--gr:#34d399}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font-family:'Prompt',sans-serif;padding-top:env(safe-area-inset-top,0px)}
+header{padding:18px 20px;border-bottom:1px solid var(--line)}h1{margin:0;font-size:19px}h1 i{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--am);box-shadow:0 0 10px var(--am);margin-right:10px}
+main{max-width:900px;margin:0 auto;padding:16px 14px 50px}.pn{background:linear-gradient(180deg,var(--p),var(--p2));border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}.pn h2{font-size:14px;margin:0 0 12px;color:var(--mu)}
+.dr{border:1.5px dashed var(--line);border-radius:12px;padding:28px;text-align:center;color:var(--mu);font-size:13.5px;cursor:pointer}.dr:hover{border-color:var(--cy)}input{display:none}
+.mu{color:var(--mu);font-size:12.5px;margin-top:10px}.ok{color:var(--gr)}.er{color:var(--rd)}.wn{color:var(--am)}
+.mp{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;font-size:12.5px}.mp div{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid var(--line);padding:4px 0}
+button{background:var(--cy);color:#04222b;border:0;padding:11px 20px;border-radius:8px;font:inherit;font-weight:600;font-size:13.5px;cursor:pointer;margin-top:14px}button:disabled{opacity:.4}
+@media(max-width:600px){.mp{grid-template-columns:1fr}}
+</style></head><body>
+<header><h1><i></i>SLA Command Center — Admin</h1><div class="mu" style="margin:4px 0 0">อัปโหลดไฟล์ Excel (.xlsx) ระบบจับคู่คอลัมน์ให้อัตโนมัติทั้งหมด</div></header>
+<main>
+<div class="pn"><h2>1. เลือกไฟล์ (ชีต Data — หัวตารางแถว store_id …)</h2><div class="dr" onclick="$('file').click()">คลิกเพื่อเลือกไฟล์ .xlsx / .xls</div><input type="file" id="file" accept=".xlsx,.xls"><div class="mu" id="fs"></div></div>
+<div class="pn" id="mp" style="display:none"><h2>2. ผลการจับคู่อัตโนมัติ</h2><div class="mp" id="mg"></div><div class="mu" id="mw"></div><button id="sv" onclick="save()">บันทึกข้อมูลและอัปเดต Dashboard</button><div class="mu" id="ss"></div></div>
+<div class="pn"><h2>ข้อมูลปัจจุบันในระบบ</h2><div class="mu" id="cur" style="margin:0">กำลังตรวจสอบ…</div></div>
+</main>
+<script>
+const URL_='https://axcudclbkzhtdnezhlbi.supabase.co',KEY='sb_publishable_we-LE76OhWvNwg2Gd25Ccg_-kpE3Rjq',$=i=>document.getElementById(i),HD={apikey:KEY,Authorization:'Bearer '+KEY};
+let OUT=null;
+$('file').onchange=e=>{const fl=e.target.files[0];if(!fl)return;$('fs').textContent='กำลังอ่านไฟล์ '+fl.name+' (ไฟล์ใหญ่ใช้เวลาสักครู่)…';
+ const rd=new FileReader();rd.onload=ev=>setTimeout(()=>{try{parse(ev.target.result)}catch(x){$('fs').innerHTML='<span class="er">อ่านไฟล์ไม่สำเร็จ: '+x.message+'</span>'}},50);rd.readAsArrayBuffer(fl)};
+function parse(buf){const wb=XLSX.read(buf,{type:'array'}),sn=wb.SheetNames.find(n=>n.toLowerCase()=='data')||wb.SheetNames[0];
+ const A=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:null,raw:true});
+ const hi=A.slice(0,20).findIndex(r=>r.some(c=>String(c??'').trim().toLowerCase()=='store_id'));if(hi<0)throw new Error('ไม่พบแถวหัวตารางที่มี store_id ในชีต '+sn);
+ const H=A[hi].map(h=>String(h??'').replace(/\s+/g,' ').trim().toLowerCase()),nth=(nm,k=0)=>{let c=0;for(let i=0;i<H.length;i++)if(H[i]==nm&&c++==k)return i;return -1},has=p=>H.findIndex(h=>h.includes(p)),sw=p=>H.findIndex(h=>h.startsWith(p));
+ const hrs=H.map((h,i)=>/^\[\d\d-\d\d\]$/.test(h)?i:-1).filter(i=>i>=0);
+ const S=[['store_id',nth('store_id'),'t'],['storename',nth('storename'),'t'],['Zone',nth('zone'),'t'],['Type',nth('storetype'),'t'],['Profile',nth('profile'),'t'],['Sub-profile',nth('sub-profile'),'t'],['FC',nth('fc'),'t'],['เขต',nth('เขต'),'t'],['ฝ่าย',nth('ฝ่าย'),'t'],['SLA เกิน 45 เทียบสัปดาห์',has('เทียบสัปดาห์'),'t'],['SLA เกิน 45 ต่อเนื่อง 2 เดือน',has('2 เดือน'),'t'],
+ ['Store Sales',nth('store sales'),0],['TC ร้าน',nth('tc',0),1],['TA ร้าน',nth('ta',0),1],['Sales Delivery',nth('sales delivery'),0],['%Of Sales',nth('%of sales'),4],['TC Delivery',nth('tc',1),1],['TA Delivery',nth('ta',1),1],['Cancel BPSD',nth('bpsd'),0],['Cancel TC',nth('tc',2),2],['%Cancel',nth('%cancel'),4],['Call (จัดส่งล่าช้า)',sw('call'),'t'],['SLA',nth('sla'),1],['รับ',nth('รับ'),2],['จัด',nth('จัด'),2],['รอส่ง',nth('รอส่ง'),2],['ส่ง',nth('ส่ง'),2]];
+ $('mg').innerHTML=S.map(s=>`<div><span>${s[0]}</span><span class="${s[1]>=0?'ok':'er'}">${s[1]>=0?'✓ '+String(A[hi][s[1]]).replace(/\s+/g,' '):'ไม่พบ'}</span></div>`).join('')+`<div><span>SLA รายชั่วโมง (24)</span><span class="${hrs.length>=24?'ok':'er'}">${hrs.length>=24?'✓ พบ':'ไม่พบ'}</span></div><div><span>TC รายชั่วโมง (24)</span><span class="${hrs.length>=48?'ok':'wn'}">${hrs.length>=48?'✓ พบ':'ไม่พบ'}</span></div>`;
+ const miss=S.filter(s=>s[1]<0).map(s=>s[0]),crit=[0,11,22].some(i=>S[i][1]<0);$('mw').innerHTML=miss.length?`<span class="wn">⚠ ไม่พบ ${miss.join(', ')} — จะเป็นค่าว่าง</span>`:'<span class="ok">✓ จับคู่ครบทุกหมวดอัตโนมัติ</span>';
+ const nm=(v,d)=>{if(v==null||v===''||isNaN(+v))return null;const m=10**d;return Math.round(+v*m)/m},tx=v=>v==null||v===''?null:String(v).trim();
+ const rows=A.slice(hi+1).filter(r=>r[S[0][1]]!=null&&r[S[0][1]]!=='').map(r=>{const o=S.map(s=>s[1]<0?null:s[2]=='t'?tx(r[s[1]]):nm(r[s[1]],s[2]));for(let k=0;k<24;k++)o.push(hrs[k]>=0?nm(r[hrs[k]],1):null);for(let k=24;k<48;k++)o.push(hrs[k]>=0?nm(r[hrs[k]],1):null);return o});
+ const t=String(A.slice(0,hi).flat().find(c=>typeof c=='string'&&c.includes('สะสม'))||''),m=t.match(/สะสม\s*(.+?)(?:\s*จำนวน|$)/);
+ OUT={period:m?m[1].trim():'',count:rows.length,rows};$('fs').innerHTML=`<span class="ok">อ่านไฟล์สำเร็จ</span> ชีต ${sn} • ${rows.length.toLocaleString()} สาขา${OUT.period?' • ช่วง '+OUT.period:''}`;
+ $('mp').style.display='block';$('sv').disabled=crit||!rows.length}
+async function save(){const b=$('sv');b.disabled=true;b.textContent='กำลังบันทึก…';
+ try{const r=await fetch(URL_+'/rest/v1/sla_data?id=eq.1',{method:'PATCH',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({records:OUT,updated_at:new Date().toISOString()})});
+ if(!r.ok)throw new Error('HTTP '+r.status+' '+(await r.text()).slice(0,120));$('ss').innerHTML=`<span class="ok">บันทึกสำเร็จ</span> ${OUT.count.toLocaleString()} สาขา — เปิด Dashboard แล้วกดรีเฟรชข้อมูล`;cur()}catch(x){$('ss').innerHTML='<span class="er">บันทึกไม่สำเร็จ: '+x.message+'</span>'}
+ b.disabled=false;b.textContent='บันทึกข้อมูลและอัปเดต Dashboard'}
+async function cur(){try{const r=await fetch(URL_+'/rest/v1/sla_data?id=eq.1&select=updated_at,n:records->>count,p:records->>period',{headers:HD});if(!r.ok)throw new Error('HTTP '+r.status);const d=(await r.json())[0]||{};
+ $('cur').textContent=d.n?`มีข้อมูล ${(+d.n).toLocaleString()} สาขา${d.p?' • ช่วง '+d.p:''} • อัปเดตล่าสุด ${new Date(d.updated_at).toLocaleString('th-TH')}`:'ยังไม่มีข้อมูลในระบบ'}catch(x){$('cur').textContent='ตรวจสอบไม่สำเร็จ: '+x.message}}
+cur();
+</script></body></html>
