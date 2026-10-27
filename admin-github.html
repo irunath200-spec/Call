@@ -18,45 +18,54 @@ button{background:var(--cy);color:#04222b;border:0;padding:11px 20px;border-radi
 <header><h1><i></i>SLA Command Center — Admin</h1><div class="mu" style="margin:4px 0 0">อัปโหลดไฟล์ Excel (.xlsx) ระบบจับคู่คอลัมน์ให้อัตโนมัติทั้งหมด</div></header>
 <main>
 <div class="pn"><h2>1. เลือกไฟล์ (ชีต Data — หัวตารางแถว store_id …)</h2><div class="dr" onclick="$('file').click()">คลิกเพื่อเลือกไฟล์ .xlsx / .xls</div><input type="file" id="file" accept=".xlsx,.xls"><div class="mu" id="fs"></div></div>
-<div class="pn" id="mp" style="display:none"><h2>2. ผลการจับคู่อัตโนมัติ</h2><div class="mu stage-help">ตรวจคอลัมน์ รับ / จัด / รอส่ง / ส่ง ด้านล่าง หากระบบหาไม่พบ ให้เลือกคอลัมน์เวลาแต่ละขั้นตอนจากเมนู (หน่วยนาที)</div><div class="mp" id="mg"></div><div class="mu" id="mw"></div><button id="sv" onclick="save()">บันทึกข้อมูลและอัปเดต Dashboard</button><div class="mu" id="ss"></div></div>
+<div class="pn" id="mp" style="display:none"><h2>2. ผลการจับคู่อัตโนมัติ</h2><div class="mu stage-help">แหล่งข้อมูลเวลา: รับ = AB, จัด = AC, รอส่ง = AD, ส่ง = AE ภายใต้หัวข้อเวลาจัดส่ง (มาตรฐาน 45 นาที) ตรวจตำแหน่งคอลัมน์ในเมนูก่อนบันทึก</div><div class="mp" id="mg"></div><div class="mu" id="mw"></div><button id="sv" onclick="save()">บันทึกข้อมูลและอัปเดต Dashboard</button><div class="mu" id="ss"></div></div>
 <div class="pn"><h2>ข้อมูลปัจจุบันในระบบ</h2><div class="mu" id="cur" style="margin:0">กำลังตรวจสอบ…</div></div>
 </main>
 <script>
 const URL_='https://axcudclbkzhtdnezhlbi.supabase.co',KEY='sb_publishable_we-LE76OhWvNwg2Gd25Ccg_-kpE3Rjq',$=i=>document.getElementById(i),HD={apikey:KEY,Authorization:'Bearer '+KEY};
-let OUT=null,LAST_BUFFER=null,STAGE_OVERRIDE={};
+let OUT=null,LAST_BUFFER=null,STAGE_OVERRIDE={},IMPORT_READY=false;
 const STAGES=['รับ','จัด','รอส่ง','ส่ง'];
 const escapeHtml=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const stageHeader=v=>String(v??'').normalize('NFKC').replace(/[\u200b-\u200d\u2060\ufeff]/g,'').toLowerCase().replace(/[\s()（）[\]_:.-]/g,'');
+// Source columns under เวลาจัดส่ง (มาตรฐาน 45 นาที): AB, AC, AD, AE.
+const PROCESS_SOURCE={รับ:{index:27,target:1},จัด:{index:28,target:9},รอส่ง:{index:29,target:10},ส่ง:{index:30,target:25}};
 function findStageColumn(headers,label){
- const names=headers.map(stageHeader),exact=names.indexOf(stageHeader(label));if(exact>=0)return exact;
- const aliases=[label+'นาที',label+'นาทีเฉลี่ย','เวลา'+label,'เวลา'+label+'นาที','เวลาเฉลี่ย'+label,'เวลาเฉลี่ย'+label+'นาที',label+'เฉลี่ย',label+'เฉลี่ยนาที','ระยะเวลา'+label,'ระยะเวลา'+label+'นาที'];
- const matches=names.map((name,i)=>aliases.includes(name)?i:-1).filter(i=>i>=0);return matches.length===1?matches[0]:-1;
+ const source=PROCESS_SOURCE[label];if(!source)return -1;
+ const header=stageHeader(headers[source.index]);
+ const allowed=[label,label+' ('+source.target+' นาที)',label+'นาที','เวลา'+label,'เวลา'+label+'นาที','เวลาเฉลี่ย'+label,'เวลาเฉลี่ย'+label+'นาที','ระยะเวลา'+label,'ระยะเวลา'+label+'นาที'].map(stageHeader);
+ return allowed.includes(header)?source.index:-1;
 }
 function setStageColumn(label,value){if(!STAGES.includes(label)||!LAST_BUFFER)return;STAGE_OVERRIDE[label]=Number(value);parse(LAST_BUFFER,STAGE_OVERRIDE);}
 $('file').onchange=e=>{const fl=e.target.files[0];if(!fl)return;$('fs').textContent='กำลังอ่านไฟล์ '+fl.name+' (ไฟล์ใหญ่ใช้เวลาสักครู่)…';
- OUT=null;LAST_BUFFER=null;STAGE_OVERRIDE={};$('sv').disabled=true;$('ss').textContent='';$('mp').style.display='none';
+ OUT=null;IMPORT_READY=false;LAST_BUFFER=null;STAGE_OVERRIDE={};$('sv').disabled=true;$('ss').textContent='';$('mp').style.display='none';
  const rd=new FileReader();rd.onload=ev=>setTimeout(()=>{try{parse(ev.target.result)}catch(x){$('fs').innerHTML='<span class="er">อ่านไฟล์ไม่สำเร็จ: '+x.message+'</span>'}},50);rd.readAsArrayBuffer(fl)};
-function parse(buf,overrides={}){LAST_BUFFER=buf;const wb=XLSX.read(buf,{type:'array'}),sn=wb.SheetNames.find(n=>n.toLowerCase()=='data')||wb.SheetNames[0];
+function parse(buf,overrides={}){IMPORT_READY=false;OUT=null;LAST_BUFFER=buf;const wb=XLSX.read(buf,{type:'array'}),sn=wb.SheetNames.find(n=>n.toLowerCase()=='data')||wb.SheetNames[0];
  const A=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:null,raw:true});
  const hi=A.slice(0,20).findIndex(r=>r.some(c=>String(c??'').trim().toLowerCase()=='store_id'));if(hi<0)throw new Error('ไม่พบแถวหัวตารางที่มี store_id ในชีต '+sn);
  const H=A[hi].map(h=>String(h??'').replace(/\s+/g,' ').trim().toLowerCase()),nth=(nm,k=0)=>{let c=0;for(let i=0;i<H.length;i++)if(H[i]==nm&&c++==k)return i;return -1},has=p=>H.findIndex(h=>h.includes(p)),sw=p=>H.findIndex(h=>h.startsWith(p));
  const N=H.map(h=>h.replace(/[^a-z0-9%\u0e00-\u0e7f]/g,'')),ff=(al,fb)=>{const i=N.findIndex(h=>al.includes(h));return i>=0?i:fb},fp=(fn,fb)=>{const i=N.findIndex(fn);return i>=0?i:fb},
+ ti=ff(['tier','tiersla','slatier','tierเวลาจัดส่ง'],-1),
  pi=ff(['performancestatus','perfermancestatus','performancestat','perfstatus','performance','สถานะperformance'],-1),pv=v=>{const t=String(v??'').toLowerCase().replace(/[^a-z\u0e00-\u0e7f]/g,'');return !t?'':/non|not|^np$|^n$|ไม่/.test(t)?'N':'P'},
  hrs=H.map((h,i)=>/^\[\d\d-\d\d\]$/.test(h)?i:-1).filter(i=>i>=0);
  const S=[['store_id',nth('store_id'),'t'],['storename',nth('storename'),'t'],['Zone',nth('zone'),'t'],['Type',nth('storetype'),'t'],['Profile',nth('profile'),'t'],['Sub-profile',nth('sub-profile'),'t'],['FC',nth('fc'),'t'],['เขต',nth('เขต'),'t'],['ฝ่าย',nth('ฝ่าย'),'t'],['SLA เกิน 45 เทียบสัปดาห์',has('เทียบสัปดาห์'),'t'],['SLA เกิน 45 ต่อเนื่อง 2 เดือน',has('2 เดือน'),'t'],
  ['Store Sales',nth('store sales'),0],['TC ร้าน',ff(['tcstore','tcร้าน','tcstores'],nth('tc',0)),1],['TA ร้าน',ff(['tastore','taร้าน'],nth('ta',0)),1],['Sales Delivery',nth('sales delivery'),0],['%Of Sales',nth('%of sales'),4],['TC Delivery',ff(['tcdelivery','tcdeliver','tcเดลิเวอรี่','tcdeliveries'],nth('tc',1)),1],['TA Delivery',ff(['tadelivery','taเดลิเวอรี่'],nth('ta',1)),1],['Cancel BPSD',fp(h=>h.includes('bpsd'),-1),2],['Cancel TC',fp(h=>h.includes('cancel')&&h.includes('tc')&&!h.includes('%'),nth('tc',2)),2],['%Cancel',fp(h=>h.includes('cancel')&&h.includes('%'),-1),4],['Call (จัดส่งล่าช้า)',sw('call'),'t'],['SLA',nth('sla'),1],...STAGES.map(label=>[label,Object.prototype.hasOwnProperty.call(overrides,label)?overrides[label]:findStageColumn(A[hi],label),2])];
- $('mg').innerHTML=S.map(s=>{const stage=STAGES.includes(s[0]);return `<div><span>${escapeHtml(s[0])}</span>${stage?`<select class="stage-select ${s[1]>=0?'ok':'er'}" aria-label="คอลัมน์${s[0]}" onchange="setStageColumn('${s[0]}',this.value)"><option value="-1"${s[1]<0?' selected':''}>ไม่พบ / เว้นว่าง</option>${A[hi].map((name,i)=>name==null||String(name).trim()===''?'':`<option value="${i}"${s[1]===i?' selected':''}>${XLSX.utils.encode_col(i)} · ${escapeHtml(String(name).replace(/\s+/g,' '))}</option>`).join('')}</select>`:`<span class="${s[1]>=0?'ok':'er'}">${s[1]>=0?'✓ '+escapeHtml(String(A[hi][s[1]]).replace(/\s+/g,' ')):'ไม่พบ'}</span>`}</div>`}).join('')+`<div><span>SLA รายชั่วโมง (24)</span><span class="${hrs.length>=24?'ok':'er'}">${hrs.length>=24?'✓ พบ':'ไม่พบ'}</span></div><div><span>TC รายชั่วโมง (24)</span><span class="${hrs.length>=48?'ok':'wn'}">${hrs.length>=48?'✓ พบ':'ไม่พบ'}</span></div>`;
- const miss=S.filter(s=>s[1]<0).map(s=>s[0]),crit=[0,11,22].some(i=>S[i][1]<0);$('mw').innerHTML=miss.length?`<span class="wn">⚠ ไม่พบ ${miss.join(', ')} — จะเป็นค่าว่าง</span>`:'<span class="ok">✓ จับคู่ครบทุกหมวดอัตโนมัติ</span>';$('mw').innerHTML+=pi>=0?'<br><span class="ok">✓ พบคอลัมน์ performance_status</span>':'<br><span class="wn">⚠ ไม่พบคอลัมน์ performance_status — Dashboard จะแบ่ง Performance / Non Performance จาก SLA (> 45 = Non) และนับร้านที่ไม่มี SLA เป็น Performance</span>';
- const nm=(v,d)=>{if(v==null||v===''||isNaN(+v))return null;const m=10**d;return Math.round(+v*m)/m},tx=v=>v==null||v===''?null:String(v).trim();
- const rows=A.slice(hi+1).filter(r=>r[S[0][1]]!=null&&r[S[0][1]]!=='').map(r=>{const o=S.map(s=>s[1]<0?null:s[2]=='t'?tx(r[s[1]]):nm(r[s[1]],s[2]));for(let k=0;k<24;k++)o.push(hrs[k]>=0?nm(r[hrs[k]],1):null);for(let k=24;k<48;k++)o.push(hrs[k]>=0?nm(r[hrs[k]],1):null);o.push(pi>=0?tx(r[pi]):null);return o});
+ $('mg').innerHTML=[...S,['TIER',ti,'t']].map(s=>{const stage=STAGES.includes(s[0]);return `<div><span>${escapeHtml(s[0])}</span>${stage?`<select class="stage-select ${s[1]>=0?'ok':'er'}" aria-label="คอลัมน์${s[0]}" onchange="setStageColumn('${s[0]}',this.value)"><option value="-1"${s[1]<0?' selected':''}>ไม่พบ / เว้นว่าง</option>${A[hi].map((name,i)=>name==null||String(name).trim()===''?'':`<option value="${i}"${s[1]===i?' selected':''}>${XLSX.utils.encode_col(i)} · ${escapeHtml(String(name).replace(/\s+/g,' '))}</option>`).join('')}</select>`:`<span class="${s[1]>=0?'ok':'er'}">${s[1]>=0?'✓ '+escapeHtml(String(A[hi][s[1]]).replace(/\s+/g,' ')):'ไม่พบ'}</span>`}</div>`}).join('')+`<div><span>SLA รายชั่วโมง (24)</span><span class="${hrs.length>=24?'ok':'er'}">${hrs.length>=24?'✓ พบ':'ไม่พบ'}</span></div><div><span>TC รายชั่วโมง (24)</span><span class="${hrs.length>=48?'ok':'wn'}">${hrs.length>=48?'✓ พบ':'ไม่พบ'}</span></div>`;
+ const sourceRows=A.slice(hi+1).filter(r=>r[S[0][1]]!=null&&r[S[0][1]]!==''),
+ invalidStages=S.slice(23,27).filter(s=>s[1]>=0&&sourceRows.some(r=>{const v=r[s[1]];return v!=null&&String(v).trim()!==''&&(!Number.isFinite(Number(v))||Number(v)<0)})),
+ miss=[...S,['TIER',ti,'t']].filter(s=>s[1]<0).map(s=>s[0]),crit=ti<0||[0,11,22,23,24,25,26].some(i=>S[i][1]<0)||invalidStages.length>0;$('mw').innerHTML=miss.length?`<span class="wn">⚠ ไม่พบ ${miss.join(', ')} — จะเป็นค่าว่าง</span>`:'<span class="ok">✓ จับคู่ครบทุกหมวดอัตโนมัติ</span>';$('mw').innerHTML+=pi>=0?'<br><span class="ok">✓ พบคอลัมน์ performance_status</span>':'<br><span class="wn">⚠ ไม่พบคอลัมน์ performance_status — Dashboard จะแบ่ง Performance / Non Performance จาก SLA (> 45 = Non) และนับร้านที่ไม่มี SLA เป็น Performance</span>';
+ if(ti<0)$('mw').innerHTML+='<br><span class="er">กรุณาเลือกไฟล์ที่มีคอลัมน์ TIER ก่อนบันทึก</span>';
+ if(S.slice(23,27).some(s=>s[1]<0))$('mw').innerHTML+='<br><span class="er">กรุณาเลือกคอลัมน์เวลารับ จัด รอส่ง และส่งให้ครบก่อนบันทึก</span>';
+ if(invalidStages.length)$('mw').innerHTML+='<br><span class="er">คอลัมน์ '+invalidStages.map(s=>escapeHtml(s[0])+' ('+XLSX.utils.encode_col(s[1])+')').join(', ')+' มีค่าที่ไม่ใช่เวลานาที กรุณาเลือกคอลัมน์ตัวเลขตามรูปแบบต้นฉบับก่อนบันทึก</span>';
+ const nm=(v,d)=>{if(v==null||String(v).trim()===''||isNaN(+v))return null;const m=10**d;return Math.round(+v*m)/m},tx=v=>v==null||v===''?null:String(v).trim();
+ const rows=A.slice(hi+1).filter(r=>r[S[0][1]]!=null&&r[S[0][1]]!=='').map(r=>{const o=S.map(s=>s[1]<0?null:s[2]=='t'?tx(r[s[1]]):nm(r[s[1]],s[2]));for(let k=0;k<24;k++)o.push(hrs[k]>=0?nm(r[hrs[k]],1):null);for(let k=24;k<48;k++)o.push(hrs[k]>=0?nm(r[hrs[k]],1):null);o.push(pi>=0?tx(r[pi]):null);o.push(ti>=0?tx(r[ti]):null);return o});
  const t=String(A.slice(0,hi).flat().find(c=>typeof c=='string'&&c.includes('สะสม'))||''),m=t.match(/สะสม\s*(.+?)(?:\s*จำนวน|$)/);
- OUT={period:m?m[1].trim():'',count:rows.length,rows};$('fs').innerHTML=`<span class="ok">อ่านไฟล์สำเร็จ</span> ชีต ${sn} • ${rows.length.toLocaleString()} สาขา${OUT.period?' • ช่วง '+OUT.period:''}`;
+ OUT={period:m?m[1].trim():'',count:rows.length,rows,processSources:Object.fromEntries(S.slice(23,27).map(s=>[s[0],s[1]>=0?XLSX.utils.encode_col(s[1]):null]))};$('fs').innerHTML=`<span class="ok">อ่านไฟล์สำเร็จ</span> ชีต ${sn} • ${rows.length.toLocaleString()} สาขา${OUT.period?' • ช่วง '+OUT.period:''}`;
  if(pi>=0){const c={P:0,N:0,'':0};rows.forEach(o=>c[pv(o[75])]++);$('fs').innerHTML+=` • performance_status: Performance ${c.P.toLocaleString()} / Non Performance ${c.N.toLocaleString()}${c['']?' / ว่าง '+c[''].toLocaleString():''}`}
- $('mp').style.display='block';$('sv').disabled=crit||!rows.length}
-async function save(){const b=$('sv');b.disabled=true;b.textContent='กำลังบันทึก…';
+ $('mp').style.display='block';IMPORT_READY=!crit&&rows.length>0;$('sv').disabled=!IMPORT_READY}
+async function save(){if(!IMPORT_READY||!OUT){$('ss').textContent='กรุณาตรวจคอลัมน์และข้อมูลเวลาให้ครบก่อนบันทึก';return}const b=$('sv');b.disabled=true;b.textContent='กำลังบันทึก…';
  try{const r=await fetch(URL_+'/rest/v1/sla_data?id=eq.1',{method:'PATCH',headers:{...HD,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({records:OUT,updated_at:new Date().toISOString()})});
  if(!r.ok)throw new Error('HTTP '+r.status+' '+(await r.text()).slice(0,120));$('ss').innerHTML=`<span class="ok">บันทึกสำเร็จ</span> ${OUT.count.toLocaleString()} สาขา — เปิด Dashboard แล้วกดรีเฟรชข้อมูล`;cur()}catch(x){$('ss').innerHTML='<span class="er">บันทึกไม่สำเร็จ: '+x.message+'</span>'}
- b.disabled=false;b.textContent='บันทึกข้อมูลและอัปเดต Dashboard'}
+ b.disabled=!IMPORT_READY;b.textContent='บันทึกข้อมูลและอัปเดต Dashboard'}
 async function cur(){try{const r=await fetch(URL_+'/rest/v1/sla_data?id=eq.1&select=updated_at,n:records->>count,p:records->>period',{headers:HD});if(!r.ok)throw new Error('HTTP '+r.status);const d=(await r.json())[0]||{};
  $('cur').textContent=d.n?`มีข้อมูล ${(+d.n).toLocaleString()} สาขา${d.p?' • ช่วง '+d.p:''} • อัปเดตล่าสุด ${new Date(d.updated_at).toLocaleString('th-TH')}`:'ยังไม่มีข้อมูลในระบบ'}catch(x){$('cur').textContent='ตรวจสอบไม่สำเร็จ: '+x.message}}
 cur();
