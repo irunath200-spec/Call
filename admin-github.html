@@ -18,7 +18,7 @@ button{background:var(--cy);color:#04222b;border:0;padding:11px 20px;border-radi
 <header><h1><i></i>SLA Command Center — Admin</h1><div class="mu" style="margin:4px 0 0">อัปโหลดไฟล์ Excel (.xlsx) ระบบจับคู่คอลัมน์ให้อัตโนมัติทั้งหมด</div></header>
 <main>
 <div class="pn"><h2>1. เลือกไฟล์ (ชีต Data — หัวตารางแถว store_id …)</h2><div class="dr" onclick="$('file').click()">คลิกเพื่อเลือกไฟล์ .xlsx / .xls</div><input type="file" id="file" accept=".xlsx,.xls"><div class="mu" id="fs"></div></div>
-<div class="pn" id="mp" style="display:none"><h2>2. ผลการจับคู่อัตโนมัติ</h2><div class="mu stage-help">แหล่งข้อมูลเวลา: รับ = AB, จัด = AC, รอส่ง = AD, ส่ง = AE ภายใต้หัวข้อเวลาจัดส่ง (มาตรฐาน 45 นาที) ตรวจตำแหน่งคอลัมน์ในเมนูก่อนบันทึก<br>สัดส่วนบิล: AK = จำนวนบิลรวม (ใช้คำนวณ), AL/AM = ภายใน 45 นาที/สัดส่วน, AN/AO = มากกว่า 45 นาที/สัดส่วน โดย AM/AO อ่านได้ทั้งเซลล์เปอร์เซ็นต์ Excel (เช่น 0.80 = 80%) และข้อความ 80% ส่วนจำนวนบิลรองรับเครื่องหมายคั่นหลักพัน เช่น 1,234</div><div class="mp" id="mg"></div><div class="mu" id="mw"></div><button id="sv" onclick="save()">บันทึกข้อมูลและอัปเดต Dashboard</button><div class="mu" id="ss"></div></div>
+<div class="pn" id="mp" style="display:none"><h2>2. ผลการจับคู่อัตโนมัติ</h2><div class="mu stage-help">แหล่งข้อมูลเวลา: รับ = AB, จัด = AC, รอส่ง = AD, ส่ง = AE ภายใต้หัวข้อเวลาจัดส่ง (มาตรฐาน 45 นาที) ตรวจตำแหน่งคอลัมน์ในเมนูก่อนบันทึก<br>สัดส่วนบิล: AK = จำนวนบิลรวม (ใช้คำนวณ), AL/AM = ภายใน 45 นาที/สัดส่วน, AN/AO = มากกว่า 45 นาที/สัดส่วน โดย AM/AO อ่านได้ทั้งเซลล์เปอร์เซ็นต์ Excel (เช่น 0.80 = 80%) และข้อความ 80% ส่วนจำนวนบิลรองรับเครื่องหมายคั่นหลักพัน เช่น 1,234 และขีด - ใน AK–AO หมายถึงไม่มีข้อมูล (ไม่นับใน AVG)</div><div class="mp" id="mg"></div><div class="mu" id="mw"></div><button id="sv" onclick="save()">บันทึกข้อมูลและอัปเดต Dashboard</button><div class="mu" id="ss"></div></div>
 <div class="pn"><h2>ข้อมูลปัจจุบันในระบบ</h2><div class="mu" id="cur" style="margin:0">กำลังตรวจสอบ…</div></div>
 </main>
 <script>
@@ -31,6 +31,8 @@ function parseBillNumber(v,percent=false){
  if(v==null||String(v).trim()==='')return {value:null,error:null};
  if(typeof v!=='number'&&typeof v!=='string')return {value:null,error:'ค่าต้องเป็นตัวเลข'};
  let text=String(v).normalize('NFKC').trim(),markedPercent=text.endsWith('%');
+ // Confirmed by the user: a standalone dash means missing data, never zero.
+ if(/^[-–—−]$/.test(text))return {value:null,error:null,missingMarker:true};
  if(markedPercent){if(!percent)return {value:null,error:'คอลัมน์จำนวนบิลไม่ควรมีเครื่องหมาย %'};text=text.slice(0,-1).trim()}
  if(text.includes(',')){
   if(!/^[+-]?\d{1,3}(,\d{3})+(\.\d+)?$/.test(text))return {value:null,error:'รูปแบบเครื่องหมายคั่นหลักพันไม่ถูกต้อง'};
@@ -79,6 +81,7 @@ function parse(buf,overrides={}){IMPORT_READY=false;OUT=null;LAST_BUFFER=buf;con
  sourceRows=sourceEntries.map(e=>e.r),
  billResults=sourceEntries.map(({r,row})=>BILL_SOURCES.map(([,i,,percent])=>readBillCell(wb.Sheets[sn],row,i,percent,r[i]))),
  billIssues=billResults.flatMap(cells=>cells.filter(cell=>cell.error)),
+ missingMarkerCount=billResults.reduce((n,cells)=>n+cells.filter(cell=>cell.missingMarker).length,0),
  invalidStages=S.slice(23,27).filter(s=>s[1]>=0&&sourceRows.some(r=>{const v=r[s[1]];return v!=null&&String(v).trim()!==''&&(!Number.isFinite(Number(v))||Number(v)<0)})),
  missingBills=BILL_SOURCES.filter(([,i])=>A[hi].length<=i||(String(A[hi][i]??'').trim()===''&&!sourceRows.some(r=>r[i]!=null&&String(r[i]).trim()!==''))),
  invalidBills=BILL_SOURCES.filter((s,k)=>billResults.some(cells=>cells[k].error)),
@@ -89,7 +92,8 @@ function parse(buf,overrides={}){IMPORT_READY=false;OUT=null;LAST_BUFFER=buf;con
  if(invalidStages.length)$('mw').innerHTML+='<br><span class="er">คอลัมน์ '+invalidStages.map(s=>escapeHtml(s[0])+' ('+XLSX.utils.encode_col(s[1])+')').join(', ')+' มีค่าที่ไม่ใช่เวลานาที กรุณาเลือกคอลัมน์ตัวเลขตามรูปแบบต้นฉบับก่อนบันทึก</span>';
  if(missingBills.length)$('mw').innerHTML+='<br><span class="er">ไม่พบคอลัมน์สัดส่วนบิล '+missingBills.map(s=>s[2]).join(', ')+' กรุณาตรวจไฟล์ก่อนบันทึก</span>';
  if(invalidBills.length)$('mw').innerHTML+='<br><span class="er">ตรวจพบข้อมูลสัดส่วนบิลที่ต้องแก้ '+billIssues.length.toLocaleString()+' เซลล์ ใน '+invalidBills.map(s=>s[2]).join(', ')+' — ยังไม่บันทึกข้อมูล กรุณาตรวจเซลล์ด้านล่าง</span><div style="overflow-x:auto;margin-top:8px"><table style="width:100%;border-collapse:collapse;font-size:12px;text-align:left"><tr><th>เซลล์</th><th>ค่าที่อ่านได้</th><th>สิ่งที่ต้องตรวจ</th></tr>'+billIssues.slice(0,12).map(cell=>'<tr><td>'+escapeHtml(cell.address)+'</td><td>'+escapeHtml(String(cell.raw??'').slice(0,100))+'</td><td>'+escapeHtml(cell.error)+'</td></tr>').join('')+'</table></div>'+(billIssues.length>12?'<div class="wn">แสดง 12 เซลล์แรกจาก '+billIssues.length.toLocaleString()+' เซลล์ที่ต้องแก้</div>':'');
- if(incompleteBills&&!missingBills.length)$('mw').innerHTML+='<br><span class="wn">บางสาขามีข้อมูลสัดส่วนบิลว่าง Dashboard จะแสดงขีดเมื่อไม่มีค่า และ AVG จะไม่นับเซลล์ว่าง กรุณาตรวจสอบก่อนบันทึก</span>';
+ if(missingMarkerCount)$('mw').innerHTML+='<br><span class="ok">✓ พบเครื่องหมายขีด '+missingMarkerCount.toLocaleString()+' เซลล์ — เก็บเป็นช่องว่างและไม่นับใน AVG ตามที่กำหนด</span>';
+ if(incompleteBills&&!missingBills.length)$('mw').innerHTML+='<br><span class="wn">บางสาขาไม่มีข้อมูลสัดส่วนบิล Dashboard จะแสดงขีดเมื่อไม่มีค่า และ AVG จะไม่นับช่องว่าง ส่วนตัวเลข 0 จริงยังนับใน AVG ตามปกติ</span>';
  const nm=(v,d)=>{if(v==null||String(v).trim()===''||isNaN(+v))return null;const m=10**d;return Math.round(+v*m)/m},tx=v=>v==null||v===''?null:String(v).trim();
  const rows=sourceRows.map((r,ri)=>{const o=S.map(s=>s[1]<0?null:s[2]=='t'?tx(r[s[1]]):nm(r[s[1]],s[2]));for(let k=0;k<24;k++)o.push(hrs[k]>=0?nm(r[hrs[k]],1):null);for(let k=24;k<48;k++)o.push(hrs[k]>=0?nm(r[hrs[k]],1):null);o.push(pi>=0?tx(r[pi]):null);o.push(ti>=0?tx(r[ti]):null);billResults[ri].forEach(cell=>o.push(cell.value));return o});
  const t=String(A.slice(0,hi).flat().find(c=>typeof c=='string'&&c.includes('สะสม'))||''),m=t.match(/สะสม\s*(.+?)(?:\s*จำนวน|$)/);
