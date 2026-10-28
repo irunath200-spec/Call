@@ -18,7 +18,7 @@ button{background:var(--cy);color:#04222b;border:0;padding:11px 20px;border-radi
 <header><h1><i></i>SLA Command Center — Admin</h1><div class="mu" style="margin:4px 0 0">อัปโหลดไฟล์ Excel (.xlsx) ระบบจับคู่คอลัมน์ให้อัตโนมัติทั้งหมด</div></header>
 <main>
 <div class="pn"><h2>1. เลือกไฟล์ (ชีต Data — หัวตารางแถว store_id …)</h2><div class="dr" onclick="$('file').click()">คลิกเพื่อเลือกไฟล์ .xlsx / .xls</div><input type="file" id="file" accept=".xlsx,.xls"><div class="mu" id="fs"></div></div>
-<div class="pn" id="mp" style="display:none"><h2>2. ผลการจับคู่อัตโนมัติ</h2><div class="mu stage-help">แหล่งข้อมูลเวลา: รับ = AB, จัด = AC, รอส่ง = AD, ส่ง = AE ภายใต้หัวข้อเวลาจัดส่ง (มาตรฐาน 45 นาที) ตรวจตำแหน่งคอลัมน์ในเมนูก่อนบันทึก<br>สัดส่วนบิล: AK = จำนวนบิลรวม (ใช้คำนวณ), AL/AM = ภายใน 45 นาที/สัดส่วน, AN/AO = มากกว่า 45 นาที/สัดส่วน โดย AM/AO ใช้ค่าจากเซลล์เปอร์เซ็นต์ Excel (เช่น 0.80 = 80%)</div><div class="mp" id="mg"></div><div class="mu" id="mw"></div><button id="sv" onclick="save()">บันทึกข้อมูลและอัปเดต Dashboard</button><div class="mu" id="ss"></div></div>
+<div class="pn" id="mp" style="display:none"><h2>2. ผลการจับคู่อัตโนมัติ</h2><div class="mu stage-help">แหล่งข้อมูลเวลา: รับ = AB, จัด = AC, รอส่ง = AD, ส่ง = AE ภายใต้หัวข้อเวลาจัดส่ง (มาตรฐาน 45 นาที) ตรวจตำแหน่งคอลัมน์ในเมนูก่อนบันทึก<br>สัดส่วนบิล: AK = จำนวนบิลรวม (ใช้คำนวณ), AL/AM = ภายใน 45 นาที/สัดส่วน, AN/AO = มากกว่า 45 นาที/สัดส่วน โดย AM/AO อ่านได้ทั้งเซลล์เปอร์เซ็นต์ Excel (เช่น 0.80 = 80%) และข้อความ 80% ส่วนจำนวนบิลรองรับเครื่องหมายคั่นหลักพัน เช่น 1,234</div><div class="mp" id="mg"></div><div class="mu" id="mw"></div><button id="sv" onclick="save()">บันทึกข้อมูลและอัปเดต Dashboard</button><div class="mu" id="ss"></div></div>
 <div class="pn"><h2>ข้อมูลปัจจุบันในระบบ</h2><div class="mu" id="cur" style="margin:0">กำลังตรวจสอบ…</div></div>
 </main>
 <script>
@@ -27,7 +27,28 @@ let OUT=null,LAST_BUFFER=null,STAGE_OVERRIDE={},IMPORT_READY=false;
 const STAGES=['รับ','จัด','รอส่ง','ส่ง'];
 // Append AK–AO after existing fields; never shift hourly data, performance status or TIER.
 const BILL_SOURCES=[['จำนวนบิลรวม (ใช้คำนวณ)',36,'AK',false],['จำนวนบิลภายใน 45 นาที',37,'AL',false],['สัดส่วนบิลภายใน 45 นาที',38,'AM',true],['จำนวนบิลมากกว่า 45 นาที',39,'AN',false],['สัดส่วนบิลมากกว่า 45 นาที',40,'AO',true]];
-const billNumber=v=>v==null||String(v).trim()===''||!Number.isFinite(Number(v))?null:Number(v);
+function parseBillNumber(v,percent=false){
+ if(v==null||String(v).trim()==='')return {value:null,error:null};
+ if(typeof v!=='number'&&typeof v!=='string')return {value:null,error:'ค่าต้องเป็นตัวเลข'};
+ let text=String(v).normalize('NFKC').trim(),markedPercent=text.endsWith('%');
+ if(markedPercent){if(!percent)return {value:null,error:'คอลัมน์จำนวนบิลไม่ควรมีเครื่องหมาย %'};text=text.slice(0,-1).trim()}
+ if(text.includes(',')){
+  if(!/^[+-]?\d{1,3}(,\d{3})+(\.\d+)?$/.test(text))return {value:null,error:'รูปแบบเครื่องหมายคั่นหลักพันไม่ถูกต้อง'};
+  text=text.replace(/,/g,'');
+ }
+ if(!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(text))return {value:null,error:'ไม่ใช่ตัวเลขหรือเป็นข้อความ/ข้อผิดพลาดจาก Excel'};
+ const n=Number(text)/(markedPercent?100:1);
+ if(!Number.isFinite(n)||n<0)return {value:null,error:'จำนวนบิลและสัดส่วนต้องเป็นตัวเลขไม่ติดลบ'};
+ if(percent&&n>1)return {value:null,error:'AM/AO ต้องเป็นสัดส่วน 0–1 หรือข้อความที่มี % เช่น 82.0% ไม่แปลงเลข 82 เป็น 82% โดยอัตโนมัติ'};
+ return {value:n,error:null};
+}
+const billNumber=(v,percent=false)=>parseBillNumber(v,percent).value;
+function readBillCell(sheet,row,index,percent,raw){
+ const address=XLSX.utils.encode_col(index)+(row+1),cell=sheet[address];
+ if(cell?.t==='e')return {value:null,error:'เซลล์มีข้อผิดพลาด Excel กรุณาตรวจสูตรต้นทาง',address,raw:cell.w??raw??cell.v};
+ if(cell?.f&&(cell.v==null||cell.t==='z'))return {value:null,error:'สูตรยังไม่มีผลลัพธ์ที่บันทึกไว้ กรุณาคำนวณและบันทึก Excel ก่อนนำเข้า',address,raw:'สูตรที่ยังไม่มีผลลัพธ์'};
+ return {...parseBillNumber(raw,percent),address,raw};
+}
 const escapeHtml=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const stageHeader=v=>String(v??'').normalize('NFKC').replace(/[\u200b-\u200d\u2060\ufeff]/g,'').toLowerCase().replace(/[\s()（）[\]_:.-]/g,'');
 // Source columns under เวลาจัดส่ง (มาตรฐาน 45 นาที): AB, AC, AD, AE.
@@ -53,20 +74,24 @@ function parse(buf,overrides={}){IMPORT_READY=false;OUT=null;LAST_BUFFER=buf;con
  const S=[['store_id',nth('store_id'),'t'],['storename',nth('storename'),'t'],['Zone',nth('zone'),'t'],['Type',nth('storetype'),'t'],['Profile',nth('profile'),'t'],['Sub-profile',nth('sub-profile'),'t'],['FC',nth('fc'),'t'],['เขต',nth('เขต'),'t'],['ฝ่าย',nth('ฝ่าย'),'t'],['SLA เกิน 45 เทียบสัปดาห์',has('เทียบสัปดาห์'),'t'],['SLA เกิน 45 ต่อเนื่อง 2 เดือน',has('2 เดือน'),'t'],
  ['Store Sales',nth('store sales'),0],['TC ร้าน',ff(['tcstore','tcร้าน','tcstores'],nth('tc',0)),1],['TA ร้าน',ff(['tastore','taร้าน'],nth('ta',0)),1],['Sales Delivery',nth('sales delivery'),0],['%Of Sales',nth('%of sales'),4],['TC Delivery',ff(['tcdelivery','tcdeliver','tcเดลิเวอรี่','tcdeliveries'],nth('tc',1)),1],['TA Delivery',ff(['tadelivery','taเดลิเวอรี่'],nth('ta',1)),1],['Cancel BPSD',fp(h=>h.includes('bpsd'),-1),2],['Cancel TC',fp(h=>h.includes('cancel')&&h.includes('tc')&&!h.includes('%'),nth('tc',2)),2],['%Cancel',fp(h=>h.includes('cancel')&&h.includes('%'),-1),4],['Call (จัดส่งล่าช้า)',sw('call'),'t'],['SLA',nth('sla'),1],...STAGES.map(label=>[label,Object.prototype.hasOwnProperty.call(overrides,label)?overrides[label]:findStageColumn(A[hi],label),2])];
  $('mg').innerHTML=[...S,['TIER',ti,'t']].map(s=>{const stage=STAGES.includes(s[0]);return `<div><span>${escapeHtml(s[0])}</span>${stage?`<select class="stage-select ${s[1]>=0?'ok':'er'}" aria-label="คอลัมน์${s[0]}" onchange="setStageColumn('${s[0]}',this.value)"><option value="-1"${s[1]<0?' selected':''}>ไม่พบ / เว้นว่าง</option>${A[hi].map((name,i)=>name==null||String(name).trim()===''?'':`<option value="${i}"${s[1]===i?' selected':''}>${XLSX.utils.encode_col(i)} · ${escapeHtml(String(name).replace(/\s+/g,' '))}</option>`).join('')}</select>`:`<span class="${s[1]>=0?'ok':'er'}">${s[1]>=0?'✓ '+escapeHtml(String(A[hi][s[1]]).replace(/\s+/g,' ')):'ไม่พบ'}</span>`}</div>`}).join('')+BILL_SOURCES.map(([label,i,col])=>`<div><span>${escapeHtml(label)} · ${col}</span><span class="${A[hi].length>i?'ok':'er'}">${A[hi].length>i?'✓ '+col+' · '+escapeHtml(A[hi][i]??'หัวตารางว่าง'):'ไม่พบคอลัมน์ '+col}</span></div>`).join('')+`<div><span>SLA รายชั่วโมง (24)</span><span class="${hrs.length>=24?'ok':'er'}">${hrs.length>=24?'✓ พบ':'ไม่พบ'}</span></div><div><span>TC รายชั่วโมง (24)</span><span class="${hrs.length>=48?'ok':'wn'}">${hrs.length>=48?'✓ พบ':'ไม่พบ'}</span></div>`;
- const sourceRows=A.slice(hi+1).filter(r=>r[S[0][1]]!=null&&r[S[0][1]]!==''),
+ const firstSheetRow=Number((wb.Sheets[sn]['!ref']||'A1').match(/\d+/)?.[0]||1)-1,
+ sourceEntries=A.slice(hi+1).map((r,k)=>({r,row:firstSheetRow+hi+1+k})).filter(({r})=>r[S[0][1]]!=null&&r[S[0][1]]!==''),
+ sourceRows=sourceEntries.map(e=>e.r),
+ billResults=sourceEntries.map(({r,row})=>BILL_SOURCES.map(([,i,,percent])=>readBillCell(wb.Sheets[sn],row,i,percent,r[i]))),
+ billIssues=billResults.flatMap(cells=>cells.filter(cell=>cell.error)),
  invalidStages=S.slice(23,27).filter(s=>s[1]>=0&&sourceRows.some(r=>{const v=r[s[1]];return v!=null&&String(v).trim()!==''&&(!Number.isFinite(Number(v))||Number(v)<0)})),
  missingBills=BILL_SOURCES.filter(([,i])=>A[hi].length<=i||(String(A[hi][i]??'').trim()===''&&!sourceRows.some(r=>r[i]!=null&&String(r[i]).trim()!==''))),
- invalidBills=BILL_SOURCES.filter(([,i,,percent])=>sourceRows.some(r=>{const v=r[i];if(v==null||String(v).trim()==='')return false;const x=billNumber(v);return x==null||x<0||(percent&&x>1)})),
- incompleteBills=sourceRows.some(r=>BILL_SOURCES.some(([,i,,percent])=>(!percent||billNumber(r[36])>0)&&(r[i]==null||String(r[i]).trim()===''))),
- miss=[...S,['TIER',ti,'t']].filter(s=>s[1]<0).map(s=>s[0]),crit=ti<0||[0,11,22,23,24,25,26].some(i=>S[i][1]<0)||invalidStages.length>0||missingBills.length>0||invalidBills.length>0;$('mw').innerHTML=miss.length?`<span class="wn">⚠ ไม่พบ ${miss.join(', ')} — จะเป็นค่าว่าง</span>`:'<span class="ok">✓ จับคู่ครบทุกหมวดอัตโนมัติ</span>';$('mw').innerHTML+=pi>=0?'<br><span class="ok">✓ พบคอลัมน์ performance_status</span>':'<br><span class="wn">⚠ ไม่พบคอลัมน์ performance_status — Dashboard จะแบ่ง Performance / Non Performance จาก SLA (> 45 = Non) และนับร้านที่ไม่มี SLA เป็น Performance</span>';
+ invalidBills=BILL_SOURCES.filter((s,k)=>billResults.some(cells=>cells[k].error)),
+ incompleteBills=billResults.some(cells=>cells.some((cell,k)=>(!BILL_SOURCES[k][3]||cells[0].value>0)&&cell.value==null&&!cell.error)),
+ miss=[...S,['TIER',ti,'t']].filter(s=>s[1]<0).map(s=>s[0]),crit=ti<0||[0,11,22,23,24,25,26].some(i=>S[i][1]<0)||invalidStages.length>0||missingBills.length>0||invalidBills.length>0;$('mw').innerHTML=miss.length?`<span class="wn">⚠ ไม่พบ ${miss.join(', ')} — จะเป็นค่าว่าง</span>`:'<span class="ok">✓ จับคู่ตำแหน่งคอลัมน์ครบทุกหมวด (แยกจากการตรวจค่าข้อมูล)</span>';$('mw').innerHTML+=pi>=0?'<br><span class="ok">✓ พบคอลัมน์ performance_status</span>':'<br><span class="wn">⚠ ไม่พบคอลัมน์ performance_status — Dashboard จะแบ่ง Performance / Non Performance จาก SLA (> 45 = Non) และนับร้านที่ไม่มี SLA เป็น Performance</span>';
  if(ti<0)$('mw').innerHTML+='<br><span class="er">กรุณาเลือกไฟล์ที่มีคอลัมน์ TIER ก่อนบันทึก</span>';
  if(S.slice(23,27).some(s=>s[1]<0))$('mw').innerHTML+='<br><span class="er">กรุณาเลือกคอลัมน์เวลารับ จัด รอส่ง และส่งให้ครบก่อนบันทึก</span>';
  if(invalidStages.length)$('mw').innerHTML+='<br><span class="er">คอลัมน์ '+invalidStages.map(s=>escapeHtml(s[0])+' ('+XLSX.utils.encode_col(s[1])+')').join(', ')+' มีค่าที่ไม่ใช่เวลานาที กรุณาเลือกคอลัมน์ตัวเลขตามรูปแบบต้นฉบับก่อนบันทึก</span>';
  if(missingBills.length)$('mw').innerHTML+='<br><span class="er">ไม่พบคอลัมน์สัดส่วนบิล '+missingBills.map(s=>s[2]).join(', ')+' กรุณาตรวจไฟล์ก่อนบันทึก</span>';
- if(invalidBills.length)$('mw').innerHTML+='<br><span class="er">ข้อมูลสัดส่วนบิลไม่ถูกต้องใน '+invalidBills.map(s=>s[2]).join(', ')+' — จำนวนบิลต้องเป็นตัวเลขไม่ติดลบ และ AM/AO ต้องเป็นสัดส่วน 0–1 (เช่น 0.80 = 80%) กรุณาตรวจค่าหรือสูตรใน Excel</span>';
+ if(invalidBills.length)$('mw').innerHTML+='<br><span class="er">ตรวจพบข้อมูลสัดส่วนบิลที่ต้องแก้ '+billIssues.length.toLocaleString()+' เซลล์ ใน '+invalidBills.map(s=>s[2]).join(', ')+' — ยังไม่บันทึกข้อมูล กรุณาตรวจเซลล์ด้านล่าง</span><div style="overflow-x:auto;margin-top:8px"><table style="width:100%;border-collapse:collapse;font-size:12px;text-align:left"><tr><th>เซลล์</th><th>ค่าที่อ่านได้</th><th>สิ่งที่ต้องตรวจ</th></tr>'+billIssues.slice(0,12).map(cell=>'<tr><td>'+escapeHtml(cell.address)+'</td><td>'+escapeHtml(String(cell.raw??'').slice(0,100))+'</td><td>'+escapeHtml(cell.error)+'</td></tr>').join('')+'</table></div>'+(billIssues.length>12?'<div class="wn">แสดง 12 เซลล์แรกจาก '+billIssues.length.toLocaleString()+' เซลล์ที่ต้องแก้</div>':'');
  if(incompleteBills&&!missingBills.length)$('mw').innerHTML+='<br><span class="wn">บางสาขามีข้อมูลสัดส่วนบิลว่าง Dashboard จะแสดงขีดเมื่อไม่มีค่า และ AVG จะไม่นับเซลล์ว่าง กรุณาตรวจสอบก่อนบันทึก</span>';
  const nm=(v,d)=>{if(v==null||String(v).trim()===''||isNaN(+v))return null;const m=10**d;return Math.round(+v*m)/m},tx=v=>v==null||v===''?null:String(v).trim();
- const rows=A.slice(hi+1).filter(r=>r[S[0][1]]!=null&&r[S[0][1]]!=='').map(r=>{const o=S.map(s=>s[1]<0?null:s[2]=='t'?tx(r[s[1]]):nm(r[s[1]],s[2]));for(let k=0;k<24;k++)o.push(hrs[k]>=0?nm(r[hrs[k]],1):null);for(let k=24;k<48;k++)o.push(hrs[k]>=0?nm(r[hrs[k]],1):null);o.push(pi>=0?tx(r[pi]):null);o.push(ti>=0?tx(r[ti]):null);BILL_SOURCES.forEach(([,i])=>o.push(billNumber(r[i])));return o});
+ const rows=sourceRows.map((r,ri)=>{const o=S.map(s=>s[1]<0?null:s[2]=='t'?tx(r[s[1]]):nm(r[s[1]],s[2]));for(let k=0;k<24;k++)o.push(hrs[k]>=0?nm(r[hrs[k]],1):null);for(let k=24;k<48;k++)o.push(hrs[k]>=0?nm(r[hrs[k]],1):null);o.push(pi>=0?tx(r[pi]):null);o.push(ti>=0?tx(r[ti]):null);billResults[ri].forEach(cell=>o.push(cell.value));return o});
  const t=String(A.slice(0,hi).flat().find(c=>typeof c=='string'&&c.includes('สะสม'))||''),m=t.match(/สะสม\s*(.+?)(?:\s*จำนวน|$)/);
  OUT={period:m?m[1].trim():'',count:rows.length,rows,processSources:Object.fromEntries(S.slice(23,27).map(s=>[s[0],s[1]>=0?XLSX.utils.encode_col(s[1]):null])),billSchemaVersion:1,billSources:Object.fromEntries(BILL_SOURCES.map((s,k)=>[s[2],77+k]))};$('fs').innerHTML=`<span class="ok">อ่านไฟล์สำเร็จ</span> ชีต ${sn} • ${rows.length.toLocaleString()} สาขา${OUT.period?' • ช่วง '+OUT.period:''}`;
  if(pi>=0){const c={P:0,N:0,'':0};rows.forEach(o=>c[pv(o[75])]++);$('fs').innerHTML+=` • performance_status: Performance ${c.P.toLocaleString()} / Non Performance ${c.N.toLocaleString()}${c['']?' / ว่าง '+c[''].toLocaleString():''}`}
