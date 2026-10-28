@@ -124,6 +124,26 @@ th{background:#f5f8fa;color:#5e7380;border-bottom:1px solid #dfe7eb}td{color:#3d
 body .st.Normal,body .st.ok,body .tp.Normal{background:#00a65a;color:#fff;border:1px solid #008d4c}
 body .st.Critical,body .st.bad,body .tp.Critical{background:#dd4b39;color:#fff;border:1px solid #c0392b}
 body .st.Risk,body .tp.Risk{background:#f39c12;color:#fff;border:1px solid #d68910}
+
+/* Bill ratio uses the same colored KPI card family as the overview. */
+.executive-kpis{grid-template-columns:repeat(5,minmax(0,1fr));grid-auto-rows:1fr;align-items:stretch}
+.executive-kpis>.exec-k{min-width:0;min-height:155px;margin:0;padding:10px 12px 26px}
+.exec-k.bill-ratio{grid-column:auto;background:#605ca8;border:0;min-height:155px;padding:10px 12px 26px;color:#fff}
+.exec-k.bill-ratio:after{content:'▥';right:12px;top:12px;opacity:.08;font-size:85px}
+.bill-ratio h2{position:relative;z-index:1;color:#fff;font-size:12px;font-weight:500;line-height:1.2;margin:0 0 4px}
+.bill-scope{display:block;font-size:9px;font-weight:400;opacity:.9;margin-top:2px}
+.bill-sides{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;position:relative;z-index:1}
+.bill-side{min-width:0;padding-right:9px}.bill-side.late{border-left:1px solid #ffffff4d;padding:0 0 0 9px}
+.bill-side h3{font-size:10px;font-weight:500;margin:0 0 3px;line-height:1.25;min-height:2.5em;color:#fff}
+.bill-values{display:flex;flex-direction:column;gap:0}.bill-count{font-size:22px;font-weight:600;color:#fff;line-height:1.1;overflow-wrap:anywhere}
+.bill-count small{display:block;font:400 9px/1.1 'Prompt',sans-serif;margin-top:1px;color:#fff}
+.bill-percent{font-size:18px;color:#fff;line-height:1.1;margin-top:3px}.bill-status{display:flex;align-items:center;gap:6px;margin-top:4px;line-height:1.3;font-size:9px;position:relative;z-index:1}
+.bill-ratio .mu{color:#fff;font-size:10px}.bill-status .mu{font-size:9px;white-space:nowrap}.bill-ratio .st{display:inline-block;font-size:9px;padding:1px 5px;border:1px solid #ffffff50}
+.bill-ratio .st.Normal{background:#00a65a;color:#fff}.bill-ratio .st.Critical{background:#dd4b39;color:#fff}
+.bill-hint{color:#fff;font-size:10px;margin-top:10px;line-height:1.6;position:relative;z-index:1}.process-anomalies{margin-bottom:12px}
+@media(max-width:1300px){.executive-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.executive-kpis{grid-template-columns:1fr}.executive-kpis>.exec-k{min-height:155px}.exec-k.bill-ratio{padding:10px 12px 26px}.bill-side{padding-right:10px}.bill-side.late{padding-left:10px}.bill-count{font-size:22px}.bill-percent{font-size:18px}}
+@media print{.executive-kpis{grid-template-columns:repeat(5,minmax(0,1fr))}.exec-k.bill-ratio{break-inside:avoid;min-height:155px;padding:10px}}
 </style></head><body>
 <header><div class="brand"><span class="brand-mark">S</span><div><div class="eyebrow">DELIVERY</div><h1>SLA Command Center</h1></div></div><div class="header-actions"><button class="menu-toggle" type="button" aria-label="เปิดหรือปิดเมนู" aria-controls="sidebar" aria-expanded="false" onclick="toggleSidebar()">☰</button><span class="topbar-name">Executive Dashboard</span><div class="header-meta"><span class="live-dot"></span><span id="up">กำลังโหลดข้อมูล…</span></div></div></header>
 <aside class="sidebar" id="sidebar" aria-label="เมนูหลัก"><div class="sidebar-profile"><div class="profile-avatar">SLA</div><div><b>Delivery Performance</b><span><i class="side-online"></i> ระบบรายงาน</span></div></div><div class="sidebar-label">MAIN NAVIGATION</div><nav class="side-nav"><a href="#overview" class="active" onclick="closeSidebar()"><span class="nav-glyph">▦</span> ภาพรวมผู้บริหาร</a><a href="#business" onclick="closeSidebar()"><span class="nav-glyph">▥</span> ผลการดำเนินงาน</a><a href="#territory" onclick="closeSidebar()"><span class="nav-glyph">◫</span> พื้นที่และสาขา</a><a href="#trend" onclick="closeSidebar()"><span class="nav-glyph">⌁</span> วิเคราะห์รายชั่วโมง</a><a href="#branch-detail" onclick="closeSidebar()"><span class="nav-glyph">≡</span> รายละเอียดรายสาขา</a></nav><div class="sidebar-bottom">DELIVERY SLA<br><small>Management Report</small></div></aside><div class="sidebar-scrim" onclick="closeSidebar()"></div>
@@ -157,6 +177,7 @@ const URL_='https://axcudclbkzhtdnezhlbi.supabase.co',KEY='sb_publishable_we-LE7
 const $=i=>document.getElementById(i),LV=[['zone',2],['div',8],['wm',7],['fc',6]],STG=['รับ','จัด','รอส่ง','ส่ง'],TG=[1,9,10,25],COL=['#3c8dbc','#00a65a','#f39c12','#dd4b39'];
 let ALL=[],META={},CUR={R:[]},PG={hm:0,dt:0,zt:0,m2:0},ZV=2;
 // Imported row layout: performance status is index 75; source TIER is index 76.
+// Bill fields appended by Admin v1: AK=77, AL=78, AM=79, AN=80, AO=81. Excel percentages are fractions.
 const SLA_TIERS=[['น้อยกว่า 45 นาที','t1','#00a65a'],['45-60 นาที','t2','#b7791f'],['60 - 119 นาที','t3','#dc2626'],['120 นาทีขึ้นไป','t4','#b91c1c']];
 const slaValue=v=>{if(v==null||String(v).trim()==='')return null;const n=Number(v);return Number.isFinite(n)&&n>=0?n:null};
 const sourceTier=r=>{
@@ -186,12 +207,12 @@ function apply(){let R=ALL;LV.forEach(([k,i])=>{const v=$('f_'+k).value;if(v)R=R
 function ring(segs,ct){let c=0,C=2*Math.PI*60;return `<svg class="rg" viewBox="0 0 180 180" width="190"><circle cx="90" cy="90" r="60" fill="none" stroke="#dce7ee" stroke-width="22"/>`+segs.map(s=>{const l=s.v/100*C,o=c/100*C;c+=s.v;return `<circle cx="90" cy="90" r="60" fill="none" stroke="${s.c}" stroke-width="22" stroke-dasharray="${l} ${C-l}" stroke-dashoffset="${-o}" transform="rotate(-90 90 90)"/>`}).join('')+`<text x="90" y="98" text-anchor="middle" fill="#344b57" font-size="24" font-weight="600">${ct}</text></svg>`}
 const CT=(l,v,u,c)=>`<div class="cd ${c}">${l?`<span>${l}</span>`:''}<b class="m">${v}</b>${u?`<small>${u}</small>`:''}</div>`;
 function dash(R){const n=R.length,a=i=>avg(R,i),pS=n==1?(a(15)==null?null:a(15)*100):rt(R,14,11),pC=n==1?(a(20)==null?null:a(20)*100):rt(R,19,16),s11=a(11),s14=a(14),l18=a(18),sla=a(22),sg=[23,24,25,26].map(i=>a(i)),taS=n==1?a(13):rr(R,11,12),taD=n==1?a(17):rr(R,14,16),
- c=fn=>R.filter(r=>slaValue(r[22])!=null&&fn(r[22])).length,sp=v=>f(v/n*100,1)+'%',call=R.filter(r=>r[21]!=null&&r[21]!=='').length,
- ov=STG.map((s,i)=>R.filter(r=>r[23+i]!=null&&r[23+i]>TG[i]).length),o45=c(isLateSla),
+ sp=v=>f(v/n*100,1)+'%',call=R.filter(r=>r[21]!=null&&r[21]!=='').length,
+ ov=STG.map((s,i)=>R.filter(r=>r[23+i]!=null&&r[23+i]>TG[i]).length),
  tr=SLA_TIERS.map((t,i)=>[R.filter(r=>sourceTier(r)===i).length,...t]);
  const rn=R.filter(r=>r[10]).length,rq=SLA_TIERS.slice(1).map((t,i)=>[R.filter(r=>r[10]&&sourceTier(r)===i+1).length,...t]),missingTier=R.filter(r=>sourceTier(r)<0).length;
  return `<div class="pn"><h2>ข้อมูลยอดขาย</h2><div class="cg">${CT('Store Sales (BPSD)',f(s11,0),'','or')}${CT('TC_store (บิล)',f(a(12),0),'','or')}${CT('TA_Store (บาท)',f(taS,0),'','or')}${CT('Delivery Sales (BPSD)',f(s14,0),'','gn')}${CT('TC_Delivery (บิล)',f(a(16),0),'','gn')}${CT('TA_Delivery (บาท)',f(taD,0),'','gn')}</div><div class="pf">%Of Sale <b>${f(pS,1)}%</b> (ยอดเดลิเวอรี่ต่อยอดขาย)</div></div>
-<div class="pn"><div class="panel-title-row"><h2>ข้อมูล SLA เวลาจัดส่ง</h2>${NOTE}</div><div class="sr">${CT('Average SLA Time',f(sla)+' นาที','','bl')}<div><h3>เวลาแยกตามกระบวนการ (นาที)</h3><div class="c4">${STG.map((s,i)=>CT(s+' เป้า≤'+TG[i]+' นาที',f(sg[i]),'','bl'+(sg[i]>TG[i]?' ovr':''))).join('')}</div></div></div><div class="sr">${CT('SLA เกิน 45 นาที (สาขา)',o45.toLocaleString(),sp(o45)+' ของสาขา','pk')}<div><h3>กระบวนการผิดปกติ (สาขา)</h3><div class="c4">${STG.map((s,i)=>CT(s+' เกินเป้า',ov[i].toLocaleString(),sp(ov[i]),'pk')).join('')}</div></div></div></div>
+<div class="pn"><div class="panel-title-row"><h2>ข้อมูล SLA เวลาจัดส่ง</h2>${NOTE}</div><div class="sr">${CT('Average SLA Time',f(sla)+' นาที','','bl')}<div><h3>เวลาแยกตามกระบวนการ (นาที)</h3><div class="c4">${STG.map((s,i)=>CT(s+' เป้า≤'+TG[i]+' นาที',f(sg[i]),'','bl'+(sg[i]>TG[i]?' ovr':''))).join('')}</div></div></div><div class="process-anomalies"><h3>กระบวนการผิดปกติ (สาขา)</h3><div class="c4">${STG.map((s,i)=>CT(s+' เกินเป้า',ov[i].toLocaleString(),sp(ov[i]),'pk')).join('')}</div></div></div>
 <div class="pn"><h2>ข้อมูลสูญเสีย</h2><div class="cg">${CT('%Cancel Order',f(pC,2)+'%','','or')}${CT('TC_Cancel (บิล)',f(a(19),1),'','or')}${CT('มูลค่าสูญเสีย (บาท)',f(l18,1),'','or')}${CT('Call จัดส่งล่าช้า',call.toLocaleString()+' Call','','gn')}</div></div>
 <div class="pn"><h2>Tier SLA เวลาจัดส่ง</h2><div class="c4">${tr.map(t=>`<div class="tw"><em style="color:${t[3]}">${t[1]}</em>${CT('',t[0].toLocaleString(),'สาขา • '+sp(t[0]),t[2])}</div>`).join('')}</div>${missingTier?`<div class="nt">${missingTier.toLocaleString()} สาขายังไม่มี TIER ที่ตรงกับ 4 กลุ่ม จึงยังไม่รวมในกลุ่มด้านบน แต่ยังนับในจำนวนสาขาทั้งหมด กรุณาตรวจคอลัมน์ TIER และนำเข้าไฟล์อีกครั้ง</div>`:''}<div class="rp3"><div class="rw"><h3>ร้าน SLA เฉลี่ยเกิน 45 นาทีต่อเนื่อง 2 เดือน <span class="mu">(% เทียบร้านซ้ำ 2 เดือนทั้งหมด)</span></h3></div><div class="c4"><div class="tw"><em style="color:#dd4b39">ร้านซ้ำ 2 เดือนทั้งหมด</em>${CT('',rn.toLocaleString(),'สาขา','pk')}</div>${rq.map(t=>`<div class="tw"><em style="color:${t[3]}">${t[1]}</em>${CT('',t[0].toLocaleString(),'สาขา • '+f(rn?t[0]/rn*100:null,1)+'%',t[2])}</div>`).join('')}</div></div></div>`}
 function store(r,per){const c=stt(r[22]),cn=r[20]==null?null:r[20]*100,cs=s3(cn,1.5),ib=(l,v)=>`<div class="ib"><span>${l}</span><b>${esc(v||'—')}</b></div>`,
@@ -261,15 +282,36 @@ function tables(){const R=CUR.R;if(!R.length)return;const ix=+$('hm').value,g={}
  $('hmt').innerHTML=`<table><tr><th>${$('hm').selectedOptions[0].text} · จำนวนร้าน</th>${STG.map(s=>`<th>${s}</th>`).join('')}<th>SLA เฉลี่ย</th></tr>${rows.slice(PG.hm*10,PG.hm*10+10).map(o=>`<tr><td>${esc(o.k)} · ${o.n} ร้าน</td>${o.v.map((v,i)=>`<td class="m ${v>TH[i]?'r':'g'}">${f(v)}</td>`).join('')}</tr>`).join('')}</table>`+pager('hm',rows.length,10)+'<div class="mu" style="margin-top:6px">มาตรฐาน: รับ ≤ 1 นาที, จัด ≤ 9 นาที, รอส่ง ≤ 10 นาที, ส่ง ≤ 25 นาที และรวม ≤ 45 นาที</div>';
  $('dt').innerHTML=dtab([...R].sort((a,b)=>(b[22]||0)-(a[22]||0)),'dt')}
 
+// Confirmed aggregate formulas: AVG(AL)/AVG(AK), AVG(AN)/AVG(AK).
+// The 80% target is an upper bound, as explicitly confirmed by the user.
+const BILL_INDEX={AK:77,AL:78,AM:79,AN:80,AO:81},BILL_TARGET=80;
+const billValue=(v,percent=false)=>{if(v==null||String(v).trim()==='')return null;const x=Number(v);return Number.isFinite(x)&&x>=0&&(!percent||x<=1)?x:null};
+const billAverage=(R,i)=>{const v=R.map(r=>billValue(r[i])).filter(x=>x!=null);return v.length?v.reduce((a,b)=>a+b,0)/v.length:null};
+function billStats(R){
+ const one=R.length===1,total=billAverage(R,BILL_INDEX.AK),within=billAverage(R,BILL_INDEX.AL),late=billAverage(R,BILL_INDEX.AN);
+ const ratio=(count,key)=>one?((v)=>v==null?null:v*100)(billValue(R[0][BILL_INDEX[key]],true)):total!=null&&total>0&&count!=null?count/total*100:null;
+ const incomplete=R.some(r=>['AK','AL','AN'].some(k=>billValue(r[BILL_INDEX[k]])==null)||(billValue(r[BILL_INDEX.AK])>0&&['AM','AO'].some(k=>billValue(r[BILL_INDEX[k]],true)==null)));
+ return {within,late,withinPercent:ratio(within,'AM'),latePercent:ratio(late,'AO'),incomplete};
+}
+function renderBillRatio(R){
+ const panel=$('bill-kpi');
+ if(!R.length){panel.innerHTML='<h2>สัดส่วนบิล</h2><div class="mu">ไม่พบข้อมูลตามตัวกรองที่เลือก</div>';return}
+ const b=billStats(R),one=R.length===1,unit=one?'บิล':'บิล / สาขา',scope=one?'รายสาขา':'เฉลี่ยจาก '+R.length.toLocaleString()+' สาขาที่เลือก';
+ const pct=v=>v==null?'—':f(v)+'%',count=v=>f(v,one?0:1);
+ const status=b.withinPercent==null?'<span class="mu">เป้าหมาย ≤ 80% · ไม่มีข้อมูลสัดส่วน</span>':`<span class="st ${b.withinPercent<=BILL_TARGET?'Normal':'Critical'}">${b.withinPercent<=BILL_TARGET?'ผ่านเป้า':'เกินเป้า'}</span> <span class="mu">เป้าหมาย ≤ 80%</span>`;
+ panel.innerHTML=`<h2>สัดส่วนบิล <span class="bill-scope">${scope} · ${unit}</span></h2><div class="bill-sides"><div class="bill-side"><h3>จำนวนบิลภายใน 45 นาที</h3><div class="bill-values"><div class="bill-count m">${count(b.within)}</div><div class="bill-percent m">${pct(b.withinPercent)}</div></div></div><div class="bill-side late"><h3>จำนวนบิลมากกว่า 45 นาที</h3><div class="bill-values"><div class="bill-count m">${count(b.late)}</div><div class="bill-percent m">${pct(b.latePercent)}</div></div></div></div><div class="bill-status">${status}</div>${b.incomplete?'<div class="bill-hint">ข้อมูลสัดส่วนบิลไม่ครบทุกสาขา ค่าเฉลี่ยไม่นับช่องว่าง หากยังไม่มีข้อมูล กรุณานำเข้า Excel ผ่านหน้า Admin ที่อัปเดตแล้ว</div>':''}<a class="exec-more" href="#branch-detail">ดูรายละเอียด <span>›</span></a>`;
+}
 function executiveOverview(R){
  const n=R.length;$('exec-period').textContent='ช่วงข้อมูล '+(META.period||'ไม่ระบุวันที่');
- if(!n){$('exec-kpis').innerHTML='<div class="empty-exec">ไม่พบข้อมูล — ลองปรับตัวกรองหรือรีเฟรชข้อมูล</div>';return}
+ const billCard='<section class="exec-k bill-ratio" id="bill-kpi" aria-label="สัดส่วนบิล"></section>';
+ if(!n){$('exec-kpis').innerHTML='<div class="empty-exec">ไม่พบข้อมูล — ลองปรับตัวกรองหรือรีเฟรชข้อมูล</div>'+billCard;renderBillRatio(R);return}
  const sla=avg(R,22),valid=R.filter(r=>slaValue(r[22])!=null),late=valid.filter(r=>isLateSla(r[22])).length,cancel=n===1?(avg(R,20)==null?null:avg(R,20)*100):rt(R,19,16),delivery=avg(R,14);
  const card=(title,value,unit,foot,cls,target)=>`<div class="exec-k ${cls}"><label>${title}</label><div class="exec-value">${value}<small>${unit}</small></div><div class="exec-foot">${foot}</div><a class="exec-more" href="#${target}">ดูรายละเอียด <span>›</span></a></div>`;
  $('exec-kpis').innerHTML=card('SLA เฉลี่ย',f(sla),'นาที',sla==null?'ไม่มีข้อมูล SLA':`<span class="st ${stt(sla)}">${STL[stt(sla)]}</span>เป้าหมาย ≤ 45 นาที`,sla==null?'':sla>45?'alert':'good','business')+
  card('ยอดขายเดลิเวอรี่เฉลี่ย',f(delivery,0),'บาท / วัน / สาขา',`ขอบเขตที่เลือก ${n.toLocaleString()} สาขา`,'','business')+
  card('อัตรายกเลิกคำสั่งซื้อ',f(cancel),'%',cancel==null?'ไม่มีข้อมูลการยกเลิก':`<span class="st ${cancel>1.5?'Critical':'Normal'}">${cancel>1.5?'เกินเป้า':'ในเกณฑ์'}</span>เป้าหมาย ≤ 1.5%`,cancel==null?'':cancel>1.5?'warn':'good','business')+
- card('สาขาที่ต้องเร่งแก้ไข',late.toLocaleString(),'สาขา',valid.length?`${f(late/valid.length*100)}% ของ ${valid.length.toLocaleString()} สาขาที่มี SLA`:'ไม่มีข้อมูล SLA','alert','territory');
+ card('SLA เกิน 45 นาที (สาขา)',late.toLocaleString(),'สาขา',valid.length?`${f(late/valid.length*100)}% ของ ${valid.length.toLocaleString()} สาขาที่มี SLA`:'ไม่มีข้อมูล SLA','alert','territory')+billCard;
+ renderBillRatio(R);
 }
 const NOTE='<aside class="compact-note" role="note" aria-label="หมายเหตุแนวทางแก้ไขความล่าช้า"><div class="compact-note-head"><span class="compact-note-icon" aria-hidden="true">i</span><div><strong>หมายเหตุ</strong><small>เมื่อเวลาของกระบวนการเกินมาตรฐาน</small></div></div><div class="note-routes"><div class="note-route dispatcher"><span class="note-stage">รับ หรือ จัด</span><span class="note-arrow" aria-hidden="true">→</span><span class="note-owner">แก้ไขที่ <strong>ดิสแพทเชอร์</strong></span></div><div class="note-route rider"><span class="note-stage">รอส่ง หรือ ส่ง</span><span class="note-arrow" aria-hidden="true">→</span><span class="note-owner">แก้ไขที่ <strong>ไรเดอร์</strong></span></div></div></aside>';
 $('branch-note').innerHTML=NOTE;
